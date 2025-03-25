@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>旅行规划师小周 - 智能旅行规划助手</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/chat.css">
+    <link rel="stylesheet" href="css/nav-menu.css">
+    <style>
+        :root {
+            --primary-color: #165DFF;
+            --primary-light: #4080FF;
+            --primary-dark: #0A45D2;
+            --background: #F9FAFC;
+            --text-color: #1D2129;
+            --text-secondary: #4E5969;
+            --gray-light: #F2F3F5;
+            --border-color: #E5E6EB;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            --shadow-light: 0 2px 10px rgba(0, 0, 0, 0.05);
+            --gradient: linear-gradient(135deg, #165DFF 0%, #0A45D2 100%);
+            --radius: 12px;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(180deg, 
+                rgba(240, 247, 255, 0.8) 0%,
+                rgba(255, 255, 255, 0.8) 25%,
+                rgba(255, 255, 255, 0.8) 75%,
+                rgba(240, 247, 255, 0.8) 100%
+            );
+            color: var(--text-color);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* 页面容器 */
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background: none;
+            position: relative;
+        }
+
+        .app-container::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg,
+                rgba(240, 247, 255, 0.4) 0%,
+                rgba(255, 255, 255, 0.4) 100%
+            );
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        /* 导航栏 */
+        .navbar {
+            position: fixed;
+            width: 100%;
+            top: 0;
+            left: 0;
+            background-color: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 1000;
+            padding: 16px 24px;
+            box-shadow: none;
+            border-bottom: 1px solid rgba(22, 93, 255, 0.08);
+        }
+
+        .nav-container {
+            max-width: 1440px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo-icon {
+            color: var(--primary-color);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s ease;
+            font-size: 15px;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            color: var(--primary-color);
+        }
+
+        .mobile-menu-toggle {
+            display: none;
+            cursor: pointer;
+            font-size: 24px;
+            color: var(--text-secondary);
+        }
+
+        /* 英雄区域 */
+        .hero-section {
+            padding-top: 120px;
+            padding-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+            background: none;
+        }
+
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: none;
+            pointer-events: none;
+        }
+
+        .hero-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        .hero-title {
+            font-size: 54px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            line-height: 1.2;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            max-width: 900px;
+            animation: fadeIn 0.8s ease-out, floatAnimation 6s ease-in-out infinite;
+        }
+
+        .hero-subtitle {
+            font-size: 22px;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+            max-width: 750px;
+            line-height: 1.5;
+        }
+
+        /* 主要内容区域 - 聊天界面 */
+        .chat-section {
+            padding: 30px 24px 60px;
+            position: relative;
+            max-width: 1200px;
+            margin: 0 auto;
+            background: none;
+        }
+
+        /* 新的搜索框容器样式 */
+        .search-container {
+            max-width: 900px;
+            margin: 0 auto 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            animation: fadeIn 1s ease-out;
+        }
+
+        /* 输入框容器样式 */
+        .search-input-container {
+            width: 100%;
+            position: relative;
+            margin-bottom: 40px;
+        }
+
+        /* 输入框包装器样式 */
+        .search-input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 36px;
+            padding: 20px 28px;
+            box-shadow: 0 8px 32px rgba(22, 93, 255, 0.06);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(22, 93, 255, 0.1);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* 搜索图标 */
+        .search-icon {
+            color: var(--text-secondary);
+            font-size: 22px;
+            margin-right: 16px;
+            opacity: 0.7;
+            transition: all 0.3s ease;
+        }
+
+        .search-input-wrapper.focused {
+            background: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 12px 36px rgba(22, 93, 255, 0.1);
+            border-color: rgba(22, 93, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .search-input-wrapper.focused .search-icon {
+            color: var(--primary-color);
+            opacity: 1;
+        }
+
+        /* 输入框样式 */
+        .search-input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            padding: 16px 0;
+            font-size: 18px;
+            outline: none;
+            color: var(--text-color);
+            transition: all 0.2s ease;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+        }
+
+        /* 输入框占位符样式 */
+        .search-placeholder {
+            position: absolute;
+            left: 66px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            pointer-events: auto;
+            cursor: text;
+            opacity: 0.7;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: calc(100% - 120px);
+            font-size: 18px;
+            transition: all 0.3s ease;
+            font-weight: 400;
+        }
+
+        .search-placeholder:hover {
+            opacity: 0.9;
+            color: var(--primary-color);
+        }
+
+        /* 发送按钮样式 */
+        .search-send-btn {
+            background: var(--gradient);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 54px;
+            height: 54px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 4px 12px rgba(0, 113, 227, 0.3);
+            margin-left: 12px;
+        }
+
+        .search-send-btn i {
+            font-size: 20px;
+        }
+
+        .search-send-btn:hover {
+            transform: scale(1.05) translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 113, 227, 0.4);
+        }
+
+        .search-send-btn:active {
+            transform: scale(0.98);
+            box-shadow: 0 2px 8px rgba(0, 113, 227, 0.3);
+        }
+
+        /* 预设按钮样式 */
+        .preset-option {
+            background: none;
+            color: var(--text-color);
+            border: 1px solid rgba(22, 93, 255, 0.15);
+            border-radius: 28px;
+            padding: 14px 22px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(22, 93, 255, 0.06);
+            white-space: nowrap;
+            animation: fadeIn 1.2s ease-out;
+        }
+
+        .preset-option i {
+            font-size: 16px;
+            margin-right: 10px;
+            color: var(--primary-color);
+            transition: all 0.3s ease;
+        }
+
+        .preset-option:hover {
+            background: rgba(22, 93, 255, 0.04);
+            border-color: rgba(22, 93, 255, 0.3);
+            color: var(--primary-color);
+            box-shadow: 0 4px 12px rgba(22, 93, 255, 0.08);
+            transform: translateY(-1px);
+        }
+
+        .preset-option:hover i {
+            color: var(--primary-color);
+        }
+
+        .preset-buttons-container {
+            width: 100%;
+            max-width: 800px;
+            margin: 20px auto 0;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .preset-options {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            padding: 8px 6px;
+            margin-bottom: 12px;
+        }
+
+        .preset-toggle-btn {
+            width: 100%;
+            text-align: center;
+            color: var(--text-secondary);
+            background: none;
+            border: none;
+            padding: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.3s ease;
+            opacity: 0.8;
+        }
+
+        .preset-toggle-btn:hover {
+            color: var(--primary-color);
+            opacity: 1;
+        }
+
+        .hidden-options {
+            display: none;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            padding: 12px 6px;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        .hidden-options.show {
+            display: grid;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        @media (max-width: 768px) {
+            .chat-section {
+                padding: 50px 20px 70px;
+            }
+            
+            .search-input-wrapper {
+                padding: 16px 24px;
+            }
+            
+            .search-input {
+                font-size: 16px;
+                padding: 12px 0;
+            }
+            
+            .search-placeholder {
+                font-size: 16px;
+                left: 58px;
+            }
+            
+            .search-send-btn {
+                width: 48px;
+                height: 48px;
+            }
+            
+            .preset-options,
+            .preset-options.expanded,
+            .hidden-options {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .chat-section {
+                padding: 40px 16px 60px;
+            }
+            
+            .search-input-wrapper {
+                padding: 14px 20px;
+            }
+            
+            .search-input {
+                font-size: 15px;
+                padding: 10px 0;
+            }
+            
+            .search-placeholder {
+                font-size: 15px;
+                left: 52px;
+            }
+            
+            .search-send-btn {
+                width: 44px;
+                height: 44px;
+            }
+            
+            .preset-options,
+            .preset-options.expanded,
+            .hidden-options {
+                grid-template-columns: 1fr;
+            }
+            
+            .preset-option {
+                padding: 12px 18px;
+                font-size: 14px;
+            }
+        }
+
+        /* 功能区域 */
+        .features-section {
+            padding: 60px 24px;
+            position: relative;
+            background: none;
+        }
+
+        .features-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 80% 50%, 
+                rgba(22, 93, 255, 0.02) 0%,
+                transparent 70%
+            );
+            pointer-events: none;
+        }
+
+        .section-title {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 40px;
+            text-align: center;
+            color: var(--text-color);
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border-radius: var(--radius);
+            padding: 32px 24px;
+            box-shadow: var(--shadow-light);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: 1px solid rgba(22, 93, 255, 0.08);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow);
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .feature-icon {
+            width: 56px;
+            height: 56px;
+            background: var(--gradient);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+            color: white;
+            font-size: 24px;
+        }
+
+        .feature-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text-color);
+        }
+
+        .feature-desc {
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* 底部区域 */
+        .footer {
+            background: none;
+            padding: 50px 24px 32px;
+            position: relative;
+        }
+
+        .footer::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, 
+                transparent 0%, 
+                rgba(22, 93, 255, 0.08) 20%, 
+                rgba(22, 93, 255, 0.08) 80%, 
+                transparent 100%
+            );
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .footer-top {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .footer-logo {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .footer-desc {
+            color: var(--text-secondary);
+            max-width: 320px;
+            margin-bottom: 24px;
+        }
+
+        .footer-links-group {
+            min-width: 160px;
+        }
+
+        .footer-links-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--text-color);
+        }
+
+        .footer-links {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .footer-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .footer-link:hover {
+            color: var(--primary-color);
+        }
+
+        .footer-bottom {
+            padding-top: 32px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 16px;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .social-links {
+            display: flex;
+            gap: 16px;
+        }
+
+        .social-link {
+            color: var(--text-secondary);
+            transition: color 0.2s ease;
+        }
+
+        .social-link:hover {
+            color: var(--primary-color);
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .mobile-menu-toggle {
+                display: block;
+            }
+
+            .hero-title {
+                font-size: 40px;
+                margin-bottom: 16px;
+            }
+
+            .hero-subtitle {
+                font-size: 18px;
+                margin-bottom: 20px;
+            }
+
+            .section-title {
+                font-size: 28px;
+                margin-bottom: 32px;
+            }
+
+            .chat-section {
+                padding: 40px 16px 60px;
+            }
+
+            .features-grid {
+                grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero-title {
+                font-size: 32px;
+                margin-bottom: 14px;
+            }
+
+            .hero-subtitle {
+                font-size: 16px;
+                margin-bottom: 30px;
+                max-width: 330px;
+            }
+
+            .chat-section {
+                padding: 40px 16px 60px;
+            }
+
+            .message {
+                max-width: 85%;
+            }
+
+            .footer-top {
+                flex-direction: column;
+                gap: 32px;
+            }
+        }
+
+        /* 动画 */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes floatAnimation {
+            0% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-5px);
+            }
+            100% {
+                transform: translateY(0);
+            }
+        }
+
+        /* 移动端菜单 */
+        .mobile-menu {
+            position: fixed;
+            top: 0;
+            right: -280px;
+            width: 280px;
+            height: 100vh;
+            background-color: rgba(255, 255, 255, 0.95);
+            z-index: 1100;
+            box-shadow: -5px 0 15px rgba(0, 0, 0, 0.1);
+            transition: right 0.3s ease;
+            padding: 24px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .mobile-menu.active {
+            right: 0;
+        }
+
+        .mobile-menu-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+        }
+
+        .mobile-menu-close {
+            font-size: 24px;
+            color: var(--text-secondary);
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+
+        .mobile-nav-links {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .mobile-nav-link {
+            color: var(--text-color);
+            text-decoration: none;
+            font-size: 18px;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+            transition: color 0.2s ease;
+        }
+
+        .mobile-nav-link:hover {
+            color: var(--primary-color);
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.4);
+            z-index: 1050;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- 导航栏 -->
+        <nav class="navbar">
+            <div class="nav-container">
+                <a href="index.html" class="logo">
+                    <i class="fas fa-ship logo-icon"></i>
+                    <span>旅行规划师小周</span>
+                </a>
+                <div class="nav-links">
+                    <a href="index.html" class="nav-link active">首页</a>
+                    <a href="planner.html" class="nav-link">旅行规划</a>
+                    <a href="inspiration.html" class="nav-link">旅行灵感</a>
+                    <a href="saved.html" class="nav-link">我的行程</a>
+                    <a href="about.html" class="nav-link">关于我们</a>
+                </div>
+                <button class="mobile-menu-toggle" id="mobile-menu-toggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </nav>
+
+        <!-- 移动端菜单 -->
+        <div class="mobile-menu" id="mobile-menu">
+            <div class="mobile-menu-header">
+                <a href="index.html" class="logo">
+                    <i class="fas fa-ship logo-icon"></i>
+                    <span>旅行规划师小周</span>
+                </a>
+                <button class="mobile-menu-close" id="mobile-menu-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="mobile-nav-links">
+                <a href="index.html" class="mobile-nav-link active">首页</a>
+                <a href="planner.html" class="mobile-nav-link">旅行规划</a>
+                <a href="inspiration.html" class="mobile-nav-link">旅行灵感</a>
+                <a href="saved.html" class="mobile-nav-link">我的行程</a>
+                <a href="about.html" class="mobile-nav-link">关于我们</a>
+            </div>
+        </div>
+        <div class="overlay" id="overlay"></div>
+
+        <!-- 英雄区域 -->
+        <section class="hero-section">
+            <div class="hero-content">
+                <h1 class="hero-title">嘿，我是小周，<br>你的个人AI旅行规划师</h1>
+                <p class="hero-subtitle">让我来做繁重的工作 — 从航班到酒店再到完整的行程。把我当作你那个精通旅行的朋友……真的知道自己在说什么的那种。</p>
+            </div>
+        </section>
+
+        <!-- 主要内容区域 - 聊天界面 -->
+        <section class="chat-section">
+            <div class="search-container">
+                <div class="search-input-container">
+                    <div class="search-input-wrapper" id="search-input-wrapper">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" class="search-input" id="search-input" placeholder="" autocomplete="off">
+                        <div class="search-placeholder" id="search-placeholder"></div>
+                        <button class="search-send-btn" id="search-send-btn">
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 预设按钮 -->
+                <div class="preset-buttons-container">
+                    <div class="preset-options">
+                        <button class="preset-option" data-query="推荐5月适合旅行的地方">
+                            <i class="fas fa-compass"></i>
+                            <span>推荐5月适合旅行的地方</span>
+                        </button>
+                        <button class="preset-option" data-query="我想去日本旅行7天，预算1万">
+                            <i class="fas fa-plane-departure"></i>
+                            <span>日本7天行程（预算1万）</span>
+                        </button>
+                        <button class="preset-option" data-query="北京三日游行程规划">
+                            <i class="fas fa-map-marked-alt"></i>
+                            <span>北京三日游行程规划</span>
+                        </button>
+                    </div>
+                    <div class="hidden-options">
+                        <button class="preset-option" data-query="适合家庭亲子游的目的地">
+                            <i class="fas fa-child"></i>
+                            <span>家庭亲子游目的地推荐</span>
+                        </button>
+                        <button class="preset-option" data-query="热门海岛旅游攻略">
+                            <i class="fas fa-umbrella-beach"></i>
+                            <span>热门海岛旅游攻略</span>
+                        </button>
+                        <button class="preset-option" data-query="欧洲两周自由行">
+                            <i class="fas fa-globe-europe"></i>
+                            <span>欧洲两周自由行</span>
+                        </button>
+                    </div>
+                    <button class="preset-toggle-btn">
+                        <span>展开更多</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 功能特点区域 -->
+        <section class="features-section">
+            <h2 class="section-title">为什么选择旅行规划师小周</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-route"></i>
+                    </div>
+                    <h3 class="feature-title">个性化旅行计划</h3>
+                    <p class="feature-desc">根据您的偏好、预算和时间，为您量身定制专属旅行计划，满足您的个性化需求。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-lightbulb"></i>
+                    </div>
+                    <h3 class="feature-title">智能推荐系统</h3>
+                    <p class="feature-desc">基于AI技术，智能推荐最适合您的目的地、景点、美食和住宿，让您的旅行更加丰富多彩。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <h3 class="feature-title">高效规划</h3>
+                    <p class="feature-desc">节省您规划旅行的时间和精力，几分钟内即可生成完整的旅行计划，高效又便捷。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-map-marked-alt"></i>
+                    </div>
+                    <h3 class="feature-title">全球目的地</h3>
+                    <p class="feature-desc">覆盖全球数千个旅游目的地，无论您想去哪里，我们都能为您提供专业的旅行建议。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-clipboard-list"></i>
+                    </div>
+                    <h3 class="feature-title">详细行程安排</h3>
+                    <p class="feature-desc">提供日程安排、景点推荐、交通指南等详细信息，让您的旅行更加顺利无忧。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-sync-alt"></i>
+                    </div>
+                    <h3 class="feature-title">实时调整</h3>
+                    <p class="feature-desc">随时调整您的旅行计划，灵活应对行程变化，为您提供最适合的旅行解决方案。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 底部区域 -->
+        <footer class="footer">
+            <div class="footer-content">
+                <div class="footer-top">
+                    <div class="footer-info">
+                        <div class="footer-logo">
+                            <i class="fas fa-ship logo-icon"></i>
+                            <span>旅行规划师小周</span>
+                        </div>
+                        <p class="footer-desc">使用AI技术为您提供个性化的旅行规划服务，让每一次旅行都成为难忘的体验。</p>
+                    </div>
+                    <div class="footer-links-group">
+                        <h4 class="footer-links-title">功能</h4>
+                        <div class="footer-links">
+                            <a href="planner.html" class="footer-link">旅行规划</a>
+                            <a href="inspiration.html" class="footer-link">旅行灵感</a>
+                            <a href="saved.html" class="footer-link">我的行程</a>
+                        </div>
+                    </div>
+                    <div class="footer-links-group">
+                        <h4 class="footer-links-title">支持</h4>
+                        <div class="footer-links">
+                            <a href="#" class="footer-link">使用指南</a>
+                            <a href="#" class="footer-link">常见问题</a>
+                            <a href="#" class="footer-link">联系我们</a>
+                        </div>
+                    </div>
+                    <div class="footer-links-group">
+                        <h4 class="footer-links-title">关于</h4>
+                        <div class="footer-links">
+                            <a href="about.html" class="footer-link">关于我们</a>
+                            <a href="#" class="footer-link">隐私政策</a>
+                            <a href="#" class="footer-link">服务条款</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="footer-bottom">
+                    <div class="copyright">© 2023 旅行规划师小周. 保留所有权利.</div>
+                    <div class="social-links">
+                        <a href="#" class="social-link"><i class="fab fa-weixin"></i></a>
+                        <a href="#" class="social-link"><i class="fab fa-weibo"></i></a>
+                        <a href="#" class="social-link"><i class="fab fa-qq"></i></a>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // 移动端菜单切换
+        const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const mobileMenuClose = document.getElementById('mobile-menu-close');
+        const overlay = document.getElementById('overlay');
+
+        mobileMenuToggle.addEventListener('click', () => {
+            mobileMenu.classList.add('active');
+            overlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+
+        mobileMenuClose.addEventListener('click', () => {
+            mobileMenu.classList.remove('active');
+            overlay.classList.remove('active');
+            document.body.style.overflow = '';
+        });
+
+        overlay.addEventListener('click', () => {
+            mobileMenu.classList.remove('active');
+            overlay.classList.remove('active');
+            document.body.style.overflow = '';
+        });
+
+        // 搜索输入和发送
+        const searchInput = document.getElementById('search-input');
+        const searchSendBtn = document.getElementById('search-send-btn');
+        const searchPlaceholder = document.getElementById('search-placeholder');
+        const searchInputWrapper = document.getElementById('search-input-wrapper');
+        
+        // 预设按钮展开/收起功能
+        const toggleBtn = document.querySelector('.preset-toggle-btn');
+        const hiddenOptions = document.querySelector('.hidden-options');
+        const presetOptions = document.querySelector('.preset-options');
+
+        toggleBtn.addEventListener('click', () => {
+            hiddenOptions.classList.toggle('show');
+            toggleBtn.classList.toggle('expanded');
+            
+            if (toggleBtn.classList.contains('expanded')) {
+                toggleBtn.querySelector('span').textContent = '收起';
+                presetOptions.classList.add('expanded');
+            } else {
+                toggleBtn.querySelector('span').textContent = '展开更多';
+                presetOptions.classList.remove('expanded');
+            }
+        });
+        
+        // 输入提示轮播
+        const placeholderTexts = [
+            "我想去巴厘岛旅行，有什么推荐？",
+            "帮我规划一个三天两晚的北京之旅",
+            "推荐5个适合春季旅行的目的地",
+            "我想带父母去云南旅行，有什么建议？",
+            "预算8000元，推荐一个5天的旅行计划"
+        ];
+        
+        let currentPlaceholderIndex = 0;
+        
+        // 初始化输入提示轮播
+        function startPlaceholderRotation() {
+            // 设置初始提示
+            searchPlaceholder.textContent = placeholderTexts[0];
+            
+            // 设置轮播间隔
+            setInterval(() => {
+                currentPlaceholderIndex = (currentPlaceholderIndex + 1) % placeholderTexts.length;
+                
+                // 淡出效果
+                searchPlaceholder.style.opacity = '0';
+                
+                setTimeout(() => {
+                    searchPlaceholder.textContent = placeholderTexts[currentPlaceholderIndex];
+                    // 淡入效果
+                    searchPlaceholder.style.opacity = '0.7';
+                }, 300);
+            }, 4000);
+        }
+        
+        // 输入框焦点处理
+        searchInput.addEventListener('focus', () => {
+            searchPlaceholder.style.opacity = '0';
+            // 聚焦时添加特殊样式到输入框容器
+            searchInputWrapper.classList.add('focused');
+        });
+        
+        searchInput.addEventListener('blur', () => {
+            searchInputWrapper.classList.remove('focused');
+            if (searchInput.value === '') {
+                searchPlaceholder.style.opacity = '0.7';
+            }
+        });
+        
+        // 点击提示文本时填充到输入框
+        searchPlaceholder.addEventListener('click', () => {
+            const currentText = placeholderTexts[currentPlaceholderIndex];
+            searchInput.value = currentText;
+            searchInput.focus();
+            
+            // 添加点击反馈效果
+            searchPlaceholder.style.transform = 'translateY(-50%) scale(0.95)';
+            setTimeout(() => {
+                searchPlaceholder.style.transform = 'translateY(-50%)';
+            }, 150);
+        });
+        
+        // 跳转到规划页面并传递用户问题
+        function redirectToPlanner(userQuestion) {
+            if (!userQuestion) return;
+            
+            // 编码用户问题以作为URL参数
+            const encodedQuestion = encodeURIComponent(userQuestion);
+            // 跳转到planner.html并附加用户问题作为参数
+            window.location.href = `planner.html?q=${encodedQuestion}`;
+        }
+        
+        // 修改发送消息函数 - 直接跳转而不显示消息
+        function sendSearchQuery() {
+            const query = searchInput.value.trim();
+            if (query) {
+                // 直接跳转到聊天页面
+                redirectToPlanner(query);
+            }
+        }
+        
+        searchSendBtn.addEventListener('click', sendSearchQuery);
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendSearchQuery();
+            }
+        });
+        
+        // 修改预设选项按钮绑定
+        document.querySelectorAll('.preset-option').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const query = this.getAttribute('data-query');
+                if (query) {
+                    redirectToPlanner(query);
+                }
+            });
+        });
+
+        // 启动输入提示轮播
+        startPlaceholderRotation();
+
+        // 确保文档完全加载后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            // 检查当前页面是否在移动视图
+            const checkIfMobile = () => {
+                return window.innerWidth <= 768;
+            };
+            
+            // 根据当前视图设置导航显示
+            const setNavigationDisplay = () => {
+                // 获取全局导航菜单容器
+                const globalNavMenu = document.querySelector('.nav-menu-container');
+                
+                if (globalNavMenu) {
+                    // 在移动视图下显示全局导航菜单，隐藏原生导航
+                    if (checkIfMobile()) {
+                        globalNavMenu.style.display = 'block';
+                        document.querySelector('.mobile-menu-toggle').style.display = 'none';
+                    } else {
+                        // 在桌面视图下隐藏全局导航菜单，显示原生导航
+                        globalNavMenu.style.display = 'none';
+                        document.querySelector('.mobile-menu-toggle').style.display = 'block';
+                    }
+                }
+            };
+            
+            // 初始设置
+            setNavigationDisplay();
+            
+            // 监听窗口大小变化
+            window.addEventListener('resize', setNavigationDisplay);
+        });
+    </script>
+
+    <!-- 引入依赖库 -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- 按顺序引入应用脚本 -->
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/components/nav-menu.js"></script>
+    <script src="js/index.js"></script>
+</body>
+</html> 

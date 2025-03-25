@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>旅行灵感 - 小舟AI旅行规划师</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/nav-menu.css">
+    <style>
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        }
+        
+        /* 解决导航栏遮挡内容问题 */
+        .max-w-6xl {
+            margin-top: 70px;
+        }
+        
+        .destination-card {
+            transition: all 0.3s ease;
+        }
+        .destination-card:hover {
+            transform: translateY(-10px);
+        }
+        .tag-button {
+            transition: all 0.2s ease;
+        }
+        .tag-button:hover {
+            background-color: #3b82f6;
+            color: white;
+        }
+        .tag-button.active {
+            background-color: #3b82f6;
+            color: white;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- 页面标题 -->
+        <div class="text-center mb-12">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">发现你的下一个目的地</h1>
+            <p class="text-lg text-gray-600">让小舟帮你找到完美的旅行灵感</p>
+        </div>
+
+        <!-- 搜索框 -->
+        <div class="max-w-3xl mx-auto mb-12">
+            <div class="flex bg-white shadow-sm rounded-lg overflow-hidden">
+                <input type="text" id="search-input" placeholder="搜索目的地、兴趣活动或风格..." class="flex-1 px-6 py-4 border-none focus:outline-none text-gray-700">
+                <button class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-4">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 筛选标签 -->
+        <div class="mb-10">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">选择你的旅行风格</h2>
+            <div class="flex flex-wrap gap-3">
+                <button class="tag-button filter-btn px-4 py-2 rounded-full bg-gray-100 text-gray-700 font-medium text-sm active" data-filter="all">全部</button>
+                <button class="tag-button filter-btn px-4 py-2 rounded-full bg-gray-100 text-gray-700 font-medium text-sm" data-filter="romantic">浪漫</button>
+                <button class="tag-button filter-btn px-4 py-2 rounded-full bg-gray-100 text-gray-700 font-medium text-sm" data-filter="nature">自然风光</button>
+                <button class="tag-button filter-btn px-4 py-2 rounded-full bg-gray-100 text-gray-700 font-medium text-sm" data-filter="food">美食</button>
+                <button class="tag-button filter-btn px-4 py-2 rounded-full bg-gray-100 text-gray-700 font-medium text-sm" data-filter="culture">历史文化</button>
+                <button class="tag-button filter-btn px-4 py-2 rounded-full bg-gray-100 text-gray-700 font-medium text-sm" data-filter="adventure">冒险</button>
+                <button class="tag-button filter-btn px-4 py-2 rounded-full bg-gray-100 text-gray-700 font-medium text-sm" data-filter="beach">海滩</button>
+                <button class="tag-button filter-btn px-4 py-2 rounded-full bg-gray-100 text-gray-700 font-medium text-sm" data-filter="city">城市探索</button>
+                <button class="tag-button filter-btn px-4 py-2 rounded-full bg-gray-100 text-gray-700 font-medium text-sm" data-filter="budget">预算友好</button>
+                <button class="tag-button filter-btn px-4 py-2 rounded-full bg-gray-100 text-gray-700 font-medium text-sm" data-filter="luxury">奢华</button>
+            </div>
+        </div>
+
+        <!-- 热门目的地 -->
+        <section class="mb-16">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-6">热门目的地</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- 目的地卡片 1 -->
+                <div class="destination-card bg-white rounded-xl overflow-hidden shadow-sm" data-type="culture">
+                    <div class="relative">
+                        <img src="https://images.unsplash.com/photo-1503899036084-c55cdd92da26?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=987&q=80" alt="京都" class="w-full h-60 object-cover">
+                        <div class="absolute bottom-4 left-4">
+                            <span class="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-medium">热门</span>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-2">京都，日本</h3>
+                        <p class="text-gray-600 mb-4">探索千年古都的传统文化，寺庙和精致美食。</p>
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="text-yellow-400 flex">
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star-half-alt"></i>
+                                </div>
+                                <span class="text-gray-600 ml-2 text-sm">4.5 (256)</span>
+                            </div>
+                            <button class="text-blue-600 hover:text-blue-800 font-medium">探索 →</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 目的地卡片 2 -->
+                <div class="destination-card bg-white rounded-xl overflow-hidden shadow-sm" data-type="beach">
+                    <div class="relative">
+                        <img src="https://images.unsplash.com/photo-1565967511849-76a60a516170?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2071&q=80" alt="巴厘岛" class="w-full h-60 object-cover">
+                        <div class="absolute bottom-4 left-4">
+                            <span class="bg-green-600 text-white px-3 py-1 rounded-full text-xs font-medium">超值</span>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-2">巴厘岛，印尼</h3>
+                        <p class="text-gray-600 mb-4">热带天堂的完美结合：海滩、文化和令人惊叹的自然景观。</p>
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="text-yellow-400 flex">
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                </div>
+                                <span class="text-gray-600 ml-2 text-sm">4.9 (312)</span>
+                            </div>
+                            <button class="text-blue-600 hover:text-blue-800 font-medium">探索 →</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 目的地卡片 3 -->
+                <div class="destination-card bg-white rounded-xl overflow-hidden shadow-sm" data-type="romantic">
+                    <div class="relative">
+                        <img src="https://images.unsplash.com/photo-1597534458220-9fb4969f2df5?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2074&q=80" alt="圣托里尼" class="w-full h-60 object-cover">
+                        <div class="absolute bottom-4 left-4">
+                            <span class="bg-purple-600 text-white px-3 py-1 rounded-full text-xs font-medium">浪漫</span>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-2">圣托里尼，希腊</h3>
+                        <p class="text-gray-600 mb-4">蓝白相间的悬崖村庄和令人惊叹的爱琴海日落。</p>
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="text-yellow-400 flex">
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="far fa-star"></i>
+                                </div>
+                                <span class="text-gray-600 ml-2 text-sm">4.0 (189)</span>
+                            </div>
+                            <button class="text-blue-600 hover:text-blue-800 font-medium">探索 →</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 季节性推荐 -->
+        <section class="mb-16">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-2">秋季最佳旅行地</h2>
+            <p class="text-gray-600 mb-6">现在正是欣赏这些地方的最佳时机</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- 大型特色卡片 -->
+                <div class="bg-white rounded-xl overflow-hidden shadow-sm recommendation-item">
+                    <div class="relative">
+                        <img src="https://images.unsplash.com/photo-1440688807730-73e4e2169fb8?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80" alt="京都红叶" class="w-full h-80 object-cover">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+                        <div class="absolute bottom-6 left-6 right-6 text-white">
+                            <h3 class="text-2xl font-bold mb-2">京都红叶季</h3>
+                            <p class="mb-4">从11月中旬到12月初，京都的寺庙和花园被美丽的枫叶覆盖，创造出梦幻般的红色和橙色景观。</p>
+                            <button class="bg-white text-blue-600 hover:bg-blue-600 hover:text-white px-4 py-2 rounded-lg transition duration-300 font-medium">了解更多</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 小型卡片组 -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- 小卡片 1 -->
+                    <div class="bg-white rounded-xl overflow-hidden shadow-sm recommendation-item">
+                        <img src="https://images.unsplash.com/photo-1605649487212-47bdab064df7?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80" alt="北海道" class="w-full h-40 object-cover">
+                        <div class="p-4">
+                            <h3 class="font-semibold text-gray-800">北海道</h3>
+                            <p class="text-gray-600 text-sm">日本的秋季仙境</p>
+                        </div>
+                    </div>
+                    
+                    <!-- 小卡片 2 -->
+                    <div class="bg-white rounded-xl overflow-hidden shadow-sm recommendation-item">
+                        <img src="https://images.unsplash.com/photo-1591408512409-18904b7c0a69?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2070&q=80" alt="普罗旺斯" class="w-full h-40 object-cover">
+                        <div class="p-4">
+                            <h3 class="font-semibold text-gray-800">普罗旺斯</h3>
+                            <p class="text-gray-600 text-sm">法国的葡萄收获季</p>
+                        </div>
+                    </div>
+                    
+                    <!-- 小卡片 3 -->
+                    <div class="bg-white rounded-xl overflow-hidden shadow-sm recommendation-item">
+                        <img src="https://images.unsplash.com/photo-1544085311-11a028465b03?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1632&q=80" alt="尼泊尔" class="w-full h-40 object-cover">
+                        <div class="p-4">
+                            <h3 class="font-semibold text-gray-800">尼泊尔</h3>
+                            <p class="text-gray-600 text-sm">最佳徒步季节</p>
+                        </div>
+                    </div>
+                    
+                    <!-- 小卡片 4 -->
+                    <div class="bg-white rounded-xl overflow-hidden shadow-sm recommendation-item">
+                        <img src="https://images.unsplash.com/photo-1514282401047-d79a71a590e8?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1365&q=80" alt="新英格兰" class="w-full h-40 object-cover">
+                        <div class="p-4">
+                            <h3 class="font-semibold text-gray-800">新英格兰</h3>
+                            <p class="text-gray-600 text-sm">美国的秋叶观赏</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 预算友好的目的地 -->
+        <section class="mb-16">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-2">预算友好的目的地</h2>
+            <p class="text-gray-600 mb-6">不用花大钱也能享受精彩旅行</p>
+            
+            <div class="bg-white rounded-xl p-8">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <!-- 预算目的地 1 -->
+                    <div class="flex recommendation-item">
+                        <img src="https://images.unsplash.com/photo-1575986767340-5d17ae0de1d9?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=776&q=80" alt="越南" class="w-20 h-20 rounded-lg object-cover flex-shrink-0">
+                        <div class="ml-4">
+                            <h3 class="font-semibold text-gray-800 mb-1">越南</h3>
+                            <p class="text-gray-600 text-sm mb-2">从美食到风景，物超所值</p>
+                            <div class="flex items-center">
+                                <span class="text-blue-600 font-semibold">¥300</span>
+                                <span class="text-gray-500 text-sm ml-1">/人/天起</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 预算目的地 2 -->
+                    <div class="flex recommendation-item">
+                        <img src="https://images.unsplash.com/photo-1560964645-5296b5099677?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=870&q=80" alt="葡萄牙" class="w-20 h-20 rounded-lg object-cover flex-shrink-0">
+                        <div class="ml-4">
+                            <h3 class="font-semibold text-gray-800 mb-1">葡萄牙</h3>
+                            <p class="text-gray-600 text-sm mb-2">欧洲最实惠的隐藏宝石</p>
+                            <div class="flex items-center">
+                                <span class="text-blue-600 font-semibold">¥450</span>
+                                <span class="text-gray-500 text-sm ml-1">/人/天起</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 预算目的地 3 -->
+                    <div class="flex recommendation-item">
+                        <img src="https://images.unsplash.com/photo-1508006728353-6ecef00dcbb8?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80" alt="泰国" class="w-20 h-20 rounded-lg object-cover flex-shrink-0">
+                        <div class="ml-4">
+                            <h3 class="font-semibold text-gray-800 mb-1">泰国</h3>
+                            <p class="text-gray-600 text-sm mb-2">岛屿、美食和文化的天堂</p>
+                            <div class="flex items-center">
+                                <span class="text-blue-600 font-semibold">¥350</span>
+                                <span class="text-gray-500 text-sm ml-1">/人/天起</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 预算目的地 4 -->
+                    <div class="flex recommendation-item">
+                        <img src="https://images.unsplash.com/photo-1612698093158-e07ac200d44e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80" alt="墨西哥" class="w-20 h-20 rounded-lg object-cover flex-shrink-0">
+                        <div class="ml-4">
+                            <h3 class="font-semibold text-gray-800 mb-1">墨西哥</h3>
+                            <p class="text-gray-600 text-sm mb-2">色彩缤纷的城市和美丽海滩</p>
+                            <div class="flex items-center">
+                                <span class="text-blue-600 font-semibold">¥400</span>
+                                <span class="text-gray-500 text-sm ml-1">/人/天起</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 预算目的地 5 -->
+                    <div class="flex recommendation-item">
+                        <img src="https://images.unsplash.com/photo-1527838832700-5059252407fa?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=998&q=80" alt="印度尼西亚" class="w-20 h-20 rounded-lg object-cover flex-shrink-0">
+                        <div class="ml-4">
+                            <h3 class="font-semibold text-gray-800 mb-1">印度尼西亚</h3>
+                            <p class="text-gray-600 text-sm mb-2">不只是巴厘岛的多岛天堂</p>
+                            <div class="flex items-center">
+                                <span class="text-blue-600 font-semibold">¥320</span>
+                                <span class="text-gray-500 text-sm ml-1">/人/天起</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 预算目的地 6 -->
+                    <div class="flex recommendation-item">
+                        <img src="https://images.unsplash.com/photo-1605216663980-b7ca6e9f2451?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1074&q=80" alt="土耳其" class="w-20 h-20 rounded-lg object-cover flex-shrink-0">
+                        <div class="ml-4">
+                            <h3 class="font-semibold text-gray-800 mb-1">土耳其</h3>
+                            <p class="text-gray-600 text-sm mb-2">跨越欧亚的文化体验</p>
+                            <div class="flex items-center">
+                                <span class="text-blue-600 font-semibold">¥380</span>
+                                <span class="text-gray-500 text-sm ml-1">/人/天起</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-8 text-center">
+                    <button class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium">查看更多预算友好目的地</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA区域 -->
+        <section class="bg-blue-600 rounded-xl overflow-hidden">
+            <div class="grid grid-cols-1 md:grid-cols-2">
+                <div class="p-10 flex flex-col justify-center">
+                    <h2 class="text-2xl font-bold text-white mb-4">找到灵感了吗？</h2>
+                    <p class="text-blue-100 mb-6">让小舟根据你的兴趣和预算规划完美行程。</p>
+                    <button onclick="parent.changeFrame('planner.html')" class="bg-white text-blue-600 hover:bg-blue-50 px-6 py-3 rounded-lg font-medium self-start">开始规划</button>
+                </div>
+                <div class="hidden md:block">
+                    <img src="https://images.unsplash.com/photo-1530789253388-582c481c54b0?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80" alt="旅行规划" class="h-full w-full object-cover">
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- 页脚 -->
+    <footer class="bg-gray-100 py-8">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <p class="text-gray-600">© 2024 小舟AI旅行规划师. 版权所有.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 脚本引用 -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/components/nav-menu.js"></script>
+</body>
+</html> 

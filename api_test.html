@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepSeek API测试</title>
+    <style>
+        :root {
+            --apple-blue: #0071e3;
+            --apple-blue-dark: #0051a2;
+            --apple-gray: #f5f5f7;
+            --apple-text: #1d1d1f;
+            --apple-success: #00c853;
+            --apple-error: #ff3b30;
+            --apple-info: #0071e3;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            color: var(--apple-text);
+            background-color: #fff;
+            line-height: 1.5;
+        }
+        
+        h1, h3 {
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        
+        h1 {
+            font-size: 2rem;
+            letter-spacing: -0.02em;
+        }
+        
+        h3 {
+            font-size: 1.2rem;
+            margin-top: 1.5rem;
+        }
+        
+        p {
+            color: #666;
+            margin-bottom: 1.5rem;
+        }
+        
+        #result {
+            border: none;
+            padding: 1.5rem;
+            margin-top: 1rem;
+            background-color: var(--apple-gray);
+            border-radius: 12px;
+            min-height: 120px;
+            max-height: 400px;
+            overflow: auto;
+            white-space: pre-wrap;
+            font-family: 'SF Mono', SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 13px;
+            color: #333;
+            box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05);
+        }
+        
+        button {
+            background-color: var(--apple-blue);
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0, 113, 227, 0.3);
+        }
+        
+        button:hover {
+            background-color: var(--apple-blue-dark);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 113, 227, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(1px);
+            box-shadow: 0 1px 4px rgba(0, 113, 227, 0.4);
+        }
+        
+        .status {
+            display: inline-block;
+            margin-left: 1rem;
+            font-style: normal;
+            color: #666;
+            font-size: 0.9rem;
+            vertical-align: middle;
+        }
+        
+        .action-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+        
+        .log-container {
+            margin-top: 1.5rem;
+            background-color: var(--apple-gray);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05);
+            height: 200px;
+            overflow-y: auto;
+            padding: 0.5rem;
+        }
+        
+        .log-entry {
+            padding: 0.6rem 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        
+        .log-info {
+            background-color: rgba(0, 113, 227, 0.1);
+            border-left: 3px solid var(--apple-info);
+        }
+        
+        .log-error {
+            background-color: rgba(255, 59, 48, 0.1);
+            border-left: 3px solid var(--apple-error);
+        }
+        
+        .log-success {
+            background-color: rgba(0, 200, 83, 0.1);
+            border-left: 3px solid var(--apple-success);
+        }
+        
+        .api-info {
+            margin: 1.5rem 0;
+            padding: 1.5rem;
+            background-color: var(--apple-gray);
+            border-radius: 12px;
+            box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05);
+        }
+        
+        .api-info table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .api-info table td {
+            padding: 0.6rem 0;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        .api-info table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .api-info table td:first-child {
+            width: 120px;
+            font-weight: 500;
+            color: #666;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .test-container {
+            background-color: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            padding: 2rem;
+            margin-top: 1.5rem;
+        }
+        
+        .header-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        
+        .logo {
+            width: 50px;
+            height: 50px;
+            background-color: var(--apple-blue);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+            box-shadow: 0 2px 10px rgba(0, 113, 227, 0.4);
+        }
+        
+        .logo svg {
+            width: 30px;
+            height: 30px;
+            fill: white;
+        }
+        
+        .metrics-info {
+            margin: 1.5rem 0;
+            padding: 1.5rem;
+            background-color: var(--apple-gray);
+            border-radius: 12px;
+            box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05);
+        }
+        
+        .metrics-info table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .metrics-info table td {
+            padding: 0.6rem 0;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        .metrics-info table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .metrics-info table td:first-child {
+            width: 120px;
+            font-weight: 500;
+            color: #666;
+        }
+        
+        @media (max-width: 600px) {
+            body {
+                padding: 1rem;
+            }
+            
+            .test-container {
+                padding: 1.2rem;
+            }
+            
+            .action-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .action-container button {
+                width: 100%;
+            }
+            
+            .status {
+                margin-left: 0;
+                margin-top: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header-container">
+        <div class="logo">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+            </svg>
+        </div>
+        <div>
+            <h1>DeepSeek API测试</h1>
+            <p>此页面用于测试小舟AI旅行规划师应用与DeepSeek API的连接状态</p>
+        </div>
+    </div>
+    
+    <div class="test-container">
+        <div class="api-info">
+            <h3>API配置信息</h3>
+            <table>
+                <tr>
+                    <td>API地址:</td>
+                    <td id="api-url">加载中...</td>
+                </tr>
+                <tr>
+                    <td>模型:</td>
+                    <td id="api-model">加载中...</td>
+                </tr>
+                <tr>
+                    <td>API密钥:</td>
+                    <td id="api-key">sk-*********************</td>
+                </tr>
+            </table>
+        </div>
+        
+        <div class="metrics-info">
+            <h3>API使用统计</h3>
+            <table>
+                <tr>
+                    <td>总请求数:</td>
+                    <td id="total-requests">0</td>
+                </tr>
+                <tr>
+                    <td>成功请求:</td>
+                    <td id="success-requests">0</td>
+                </tr>
+                <tr>
+                    <td>失败请求:</td>
+                    <td id="error-requests">0</td>
+                </tr>
+                <tr>
+                    <td>成功率:</td>
+                    <td id="success-rate">0%</td>
+                </tr>
+                <tr>
+                    <td>平均响应时间:</td>
+                    <td id="avg-response-time">0ms</td>
+                </tr>
+            </table>
+        </div>
+        
+        <div class="action-container">
+            <button id="testBtn">测试API连接</button>
+            <button id="resetBtn">重置统计</button>
+            <button id="clearCacheBtn">清除缓存</button>
+            <div class="status" id="status">就绪</div>
+        </div>
+        
+        <h3>测试日志</h3>
+        <div class="log-container" id="log-container"></div>
+        
+        <h3>响应结果</h3>
+        <pre id="result" class="hidden">等待测试...</pre>
+    </div>
+    
+    <!-- 引入依赖库 -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- 按顺序引入应用脚本，使用defer属性确保按顺序加载 -->
+    <script src="js/config.js" defer></script>
+    <script src="js/utils.js" defer></script>
+    <script src="js/api.js" defer></script>
+    <script src="js/api_test.js" defer></script>
+    
+    <!-- 添加脚本加载检查 -->
+    <script>
+        // 应用初始化函数
+        function initApp() {
+            console.log('初始化测试页面...');
+            
+            // 检查必要的全局对象是否存在
+            if (!window.AppConfig) {
+                console.error('配置模块未加载');
+                displayErrorMessage('配置模块未加载，请检查网络连接并刷新页面');
+                return;
+            }
+            
+            if (!window.AppUtils) {
+                console.error('工具类模块未加载');
+                displayErrorMessage('工具类模块未加载，请检查网络连接并刷新页面');
+                return;
+            }
+            
+            if (!window.TravelAI) {
+                console.error('API模块未加载');
+                displayErrorMessage('API模块未加载，请检查网络连接并刷新页面');
+                return;
+            }
+            
+            // 显示API配置信息
+            try {
+                document.getElementById('api-url').textContent = window.AppConfig.API_CONFIG.baseUrl;
+                document.getElementById('api-model').textContent = window.AppConfig.API_CONFIG.model;
+                
+                // 隐藏API密钥的大部分字符
+                const apiKey = window.AppConfig.API_CONFIG.apiKey;
+                document.getElementById('api-key').textContent = 
+                    apiKey.substring(0, 3) + '...' + apiKey.substring(apiKey.length - 4);
+                
+                updateMetricsDisplay();
+            } catch (error) {
+                console.error('无法显示API配置信息:', error);
+                addLogEntry('无法加载API配置信息: ' + error.message, 'error');
+            }
+        }
+        
+        // 显示错误信息
+        function displayErrorMessage(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'log-entry log-error';
+            errorDiv.textContent = message;
+            document.getElementById('log-container').appendChild(errorDiv);
+        }
+        
+        // 当DOM加载完成后执行初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 设置一个超时检查，确保所有脚本都已加载
+            setTimeout(initApp, 500);
+        });
+        
+        // 更新监控信息显示
+        function updateMetricsDisplay() {
+            const stats = window.TravelAI.getMetrics();
+            document.getElementById('total-requests').textContent = stats.requestCount;
+            document.getElementById('success-requests').textContent = stats.successCount;
+            document.getElementById('error-requests').textContent = stats.errorCount;
+            document.getElementById('success-rate').textContent = stats.successRate;
+            document.getElementById('avg-response-time').textContent = 
+                Math.round(stats.averageResponseTime) + 'ms';
+        }
+        
+        // 重置统计按钮
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            window.TravelAI.resetMetrics();
+            updateMetricsDisplay();
+            addLogEntry('已重置API使用统计', 'info');
+        });
+        
+        // 清除缓存按钮
+        document.getElementById('clearCacheBtn').addEventListener('click', () => {
+            window.TravelAI.clearCache();
+            addLogEntry('已清除API响应缓存', 'info');
+        });
+        
+        // 测试按钮点击事件
+        document.getElementById('testBtn').addEventListener('click', async () => {
+            const statusElement = document.getElementById('status');
+            const resultElement = document.getElementById('result');
+            const testBtn = document.getElementById('testBtn');
+            
+            // 禁用按钮，避免重复点击
+            testBtn.disabled = true;
+            testBtn.textContent = '测试中...';
+            
+            // 清空之前的日志
+            document.getElementById('log-container').innerHTML = '';
+            
+            // 隐藏结果区域，等有结果再显示
+            resultElement.classList.add('hidden');
+            resultElement.textContent = '等待测试结果...';
+            
+            // 更新状态
+            const updateStatus = (status) => {
+                statusElement.textContent = status;
+                addLogEntry(status);
+            };
+            
+            // 处理结果
+            const handleResult = (data) => {
+                resultElement.classList.remove('hidden');
+                resultElement.textContent = JSON.stringify(data, null, 2);
+                addLogEntry('API测试成功', 'success');
+                
+                // 提取并显示AI回答
+                try {
+                    const aiResponse = data.choices[0].message.content;
+                    addLogEntry(`AI回答: ${aiResponse}`, 'success');
+                } catch (e) {
+                    addLogEntry('无法提取AI回答', 'error');
+                }
+                
+                // 更新监控信息显示
+                updateMetricsDisplay();
+                
+                // 恢复按钮状态
+                testBtn.disabled = false;
+                testBtn.textContent = '测试API连接';
+            };
+            
+            // 处理错误
+            const handleError = (message, details) => {
+                resultElement.classList.remove('hidden');
+                resultElement.textContent = `错误: ${message}\n\n${JSON.stringify(details, null, 2)}`;
+                addLogEntry(message, 'error');
+                
+                // 更新监控信息显示
+                updateMetricsDisplay();
+                
+                // 恢复按钮状态
+                testBtn.disabled = false;
+                testBtn.textContent = '重新测试';
+            };
+            
+            // 执行测试
+            addLogEntry('开始API测试', 'info');
+            await testAPIConnection(updateStatus, handleResult, handleError);
+        });
+    </script>
+</body>
+</html> 

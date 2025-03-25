@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>行程规划 - 旅行规划师小周</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/chat.css">
+    <link rel="stylesheet" href="css/nav-menu.css">
+    <style>
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        }
+        .chat-messages {
+            height: calc(100vh - 200px);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        .message {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 16px;
+            max-width: 100%;
+        }
+        .message-content {
+            padding: 12px 16px;
+            border-radius: 18px;
+            max-width: 85%;
+        }
+        .user-message {
+            align-self: flex-end;
+        }
+        .user-message .message-content {
+            background-color: #0071e3;
+            color: white;
+            border-bottom-right-radius: 4px;
+            align-self: flex-end;
+        }
+        .bot-message {
+            align-self: flex-start;
+        }
+        .bot-message .message-content {
+            background-color: #f2f2f7;
+            color: #1c1c1e;
+            border-bottom-left-radius: 4px;
+            align-self: flex-start;
+        }
+        .typing-dots .dot {
+            animation-duration: 1.4s;
+            animation-iteration-count: infinite;
+            animation-fill-mode: both;
+        }
+        .suggestion-btn {
+            white-space: nowrap;
+        }
+        #suggestion-buttons {
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        #suggestion-buttons::-webkit-scrollbar {
+            display: none;
+        }
+        
+        /* 调整聊天区域的定位，避免被导航栏遮挡 */
+        .h-screen {
+            height: calc(100vh - 70px);
+            margin-top: 70px;
+        }
+
+        .itinerary-container {
+            background-color: #f8f9fa;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin: 15px 0;
+            width: 100%;
+        }
+
+        .section-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .itinerary-overview {
+            background-color: #f0f7ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #0071e3;
+        }
+
+        .overview-list {
+            margin: 0;
+            padding-left: 20px;
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        .overview-list li {
+            margin-bottom: 5px;
+            padding-right: 15px;
+            width: 50%;
+            box-sizing: border-box;
+        }
+
+        .overview-list li strong {
+            color: #0071e3;
+        }
+
+        .itinerary-days {
+            padding: 15px;
+        }
+
+        /* 新增 - 水平卡片滚动 */
+        .day-cards-container {
+            display: flex;
+            overflow-x: auto;
+            padding: 10px 0;
+            margin: 0 -10px;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+        }
+
+        .day-cards-container::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .day-cards-container::-webkit-scrollbar-thumb {
+            background-color: rgba(0,113,227,0.5);
+            border-radius: 3px;
+        }
+
+        .day-cards-container::-webkit-scrollbar-track {
+            background-color: #f0f0f0;
+            border-radius: 3px;
+        }
+
+        /* 日卡片样式调整为水平布局 */
+        .day-card {
+            background-color: white;
+            border-radius: 8px;
+            margin: 0 10px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            min-width: 280px;
+            max-width: 280px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #e1e4e8;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .day-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .day-title {
+            background-color: #0071e3;
+            color: white;
+            padding: 10px 15px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .day-content {
+            padding: 12px 15px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 强调重要信息 */
+        .highlight {
+            background-color: #fff8e6;
+            border-left: 3px solid #fdbe33;
+            padding: 8px 12px;
+            margin: 8px 0;
+            font-weight: 500;
+        }
+
+        .key-info {
+            color: #0071e3;
+            font-weight: bold;
+        }
+
+        .info-title {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 6px;
+            border-bottom: 2px solid #0071e3;
+            padding-bottom: 4px;
+            display: inline-block;
+        }
+
+        .time-slot {
+            font-weight: 600;
+            color: #0071e3;
+            margin-right: 10px;
+            min-width: 50px;
+            display: inline-block;
+            flex-shrink: 0;
+            background-color: #e6f2ff;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .address-info {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 4px;
+            background-color: #f5f5f5;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .tips-info {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px dashed #e1e4e8;
+            font-style: italic;
+            color: #555;
+        }
+
+        .tips-info::before {
+            content: "💡 ";
+        }
+
+        .schedule-list {
+            margin: 0;
+            padding-left: 5px;
+            list-style-type: none;
+        }
+
+        .schedule-list li {
+            margin-bottom: 12px;
+            position: relative;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .schedule-list li:before {
+            content: "•";
+            position: absolute;
+            left: -10px;
+            color: #0071e3;
+            font-size: 18px;
+        }
+
+        .schedule-item {
+            display: flex;
+            width: 100%;
+        }
+
+        .activity-content {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        .activity-main {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .activity-desc {
+            font-size: 0.9em;
+            color: #555;
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+
+        .activity-text {
+            flex: 1;
+        }
+
+        .time-paragraph {
+            display: flex;
+            margin-bottom: 10px;
+            align-items: baseline;
+        }
+
+        .source-indicator {
+            display: inline-flex;
+            align-items: center;
+            margin-top: 10px;
+            padding: 4px 8px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+            font-size: 0.8em;
+            color: #666;
+        }
+
+        .source-indicator.deepseek-source {
+            background-color: #e6f4ea;
+            color: #1e7e34;
+        }
+
+        .source-indicator i {
+            margin-right: 5px;
+        }
+
+        .itinerary-title {
+            border-bottom: 2px solid #0071e3;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            color: #0071e3;
+        }
+
+        .additional-info {
+            padding: 15px;
+            background-color: #fafafa;
+            border-top: 1px solid #e1e4e8;
+        }
+
+        .info-section {
+            margin-bottom: 15px;
+        }
+
+        .info-section:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 控制按钮 */
+        .scroll-controls {
+            display: flex;
+            justify-content: center;
+            margin-top: 10px;
+            gap: 10px;
+        }
+
+        .scroll-button {
+            background-color: #0071e3;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .scroll-button:hover {
+            background-color: #005bb5;
+        }
+
+        .scroll-button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        /* 增加分隔线 */
+        .section-divider {
+            height: 1px;
+            background: linear-gradient(to right, transparent, #0071e3, transparent);
+            margin: 20px 0;
+        }
+        
+        /* 行程操作按钮样式 */
+        .itinerary-actions {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .share-button, .regenerate-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 15px;
+            background-color: #f0f0f0;
+            color: #333;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .share-button:hover, .regenerate-button:hover {
+            background-color: #e0e0e0;
+        }
+        
+        .share-button i, .regenerate-button i {
+            margin-right: 6px;
+        }
+        
+        .regenerate-button {
+            background-color: #e6f3ff;
+            color: #0071e3;
+        }
+        
+        .regenerate-button:hover {
+            background-color: #d0e8ff;
+        }
+
+        /* 行程生成状态样式 */
+        .generating-message {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .loading-spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid #e9ecef;
+            border-top: 3px solid #007bff;
+            border-radius: 50%;
+            margin-right: 12px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* 验证提示样式 */
+        .validation-note {
+            margin-top: 12px;
+            padding: 10px;
+            background-color: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #2e7d32;
+        }
+        
+        .validation-note i {
+            margin-right: 8px;
+        }
+        
+        /* 内容补全样式 */
+        .completion-highlight {
+            background-color: rgba(255, 235, 59, 0.2);
+            border-bottom: 1px dashed #ffc107;
+            padding: 0 2px;
+        }
+        
+        /* 行程生成进度指示器CSS补充 */
+        .itinerary-progress-container {
+            animation: slide-in 0.3s ease-out;
+        }
+        
+        @keyframes slide-in {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        /* 增强可见性和步骤指示 */
+        .progress-steps::before {
+            content: '';
+            position: absolute;
+            top: 6px;
+            left: 10%;
+            width: 80%;
+            height: 2px;
+            background-color: #ddd;
+            z-index: 0;
+        }
+        
+        .progress-steps {
+            position: relative;
+        }
+        
+        .step-indicator {
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* 分享和重新生成按钮样式增强 */
+        .share-button, .regenerate-button {
+            transition: transform 0.2s ease;
+        }
+        
+        .share-button:hover, .regenerate-button:hover {
+            transform: translateY(-2px);
+        }
+        
+        .share-button:active, .regenerate-button:active {
+            transform: translateY(1px);
+        }
+        
+        /* 自动补全信息样式 */
+        .auto-completed-day {
+            position: relative;
+        }
+        
+        .auto-completed-day::after {
+            content: '自动补充';
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 11px;
+            background-color: #ffeb3b;
+            color: #212121;
+            padding: 2px 6px;
+            border-radius: 10px;
+            opacity: 0.7;
+        }
+
+        /* 行程展示优化 - Tab导航和折叠功能 */
+        
+        /* Tab导航系统 */
+        .itinerary-tabs {
+            margin-top: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        .tabs-nav {
+            display: flex;
+            background: #f5f5f7;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .tab-btn {
+            padding: 12px 20px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-weight: 500;
+            color: #333;
+            transition: all 0.2s;
+            position: relative;
+        }
+        
+        .tab-btn:hover {
+            background: rgba(0,0,0,0.03);
+        }
+        
+        .tab-btn.active {
+            color: #007aff;
+            background: #fff;
+            border-bottom: 2px solid #007aff;
+        }
+        
+        .tabs-content {
+            padding: 20px;
+        }
+        
+        .tab-pane {
+            display: none;
+        }
+        
+        .tab-pane.active {
+            display: block;
+        }
+        
+        /* 日期导航样式 */
+        .daily-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 15px;
+        }
+        
+        .day-nav-btn {
+            padding: 8px 15px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            background: #f8f8f8;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .day-nav-btn:hover {
+            background: #f0f0f0;
+        }
+        
+        .day-nav-btn.active {
+            background: #007aff;
+            color: white;
+            border-color: #007aff;
+        }
+        
+        /* 每日内容样式 */
+        .daily-content {
+            position: relative;
+        }
+        
+        .day-detail {
+            display: none;
+            margin-bottom: 20px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .day-detail.active {
+            display: block;
+        }
+        
+        .day-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+            background: #f9f9f9;
+            border-radius: 8px 8px 0 0;
+        }
+        
+        .day-header h3 {
+            margin: 0;
+            font-size: 18px;
+            color: #333;
+        }
+        
+        .day-content-wrapper {
+            padding: 0 15px 15px;
+        }
+        
+        /* 时间段样式 */
+        .time-period {
+            margin: 15px 0;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .period-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            background: #f5f5f7;
+            cursor: pointer;
+        }
+        
+        .period-name {
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .period-details {
+            padding: 15px;
+            background: #fff;
+        }
+        
+        .period-items {
+            margin: 0;
+            padding-left: 20px;
+        }
+        
+        .period-items li {
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+        
+        .no-content {
+            color: #999;
+            font-style: italic;
+        }
+        
+        /* 当日信息底部 */
+        .day-info-footer {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px dashed #eee;
+        }
+        
+        .transport-info, .food-info {
+            flex: 1;
+            min-width: 200px;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 6px;
+        }
+        
+        /* 按钮样式 */
+        .toggle-day-details, .toggle-period-details {
+            background: transparent;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .toggle-day-details:hover, .toggle-period-details:hover {
+            background: rgba(0,0,0,0.05);
+        }
+        
+        /* 其他标签页内容样式 */
+        .accommodations-content, .food-content, .tips-content {
+            margin-bottom: 20px;
+        }
+        
+        .section-title {
+            margin-top: 0;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+            color: #333;
+        }
+        
+        .acc-list, .food-list, .tips-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .acc-item, .food-item, .tip-item {
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        
+        /* 活动详情内容 */
+        .activity-details {
+            margin-top: 8px;
+            padding-left: 10px;
+            border-left: 2px solid #eee;
+        }
+        
+        .detail-item {
+            margin-bottom: 5px;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .activity-main {
+            font-weight: 500;
+            color: #333;
+        }
+        
+        /* 响应式调整 */
+        @media (max-width: 768px) {
+            .tabs-nav {
+                flex-wrap: nowrap;
+            }
+            
+            .tab-btn {
+                padding: 10px 15px;
+                font-size: 14px;
+            }
+            
+            .tabs-content {
+                padding: 15px;
+            }
+            
+            .day-header {
+                padding: 12px 15px;
+            }
+            
+            .day-header h3 {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- 导航栏将由 JavaScript 动态添加 -->
+
+    <div class="h-screen flex">
+        <!-- 聊天区域 -->
+        <div id="chat-container" class="flex-1 flex flex-col bg-gray-50 relative">
+            <!-- 聊天头部 -->
+            <div class="chat-header">
+                <h1>与旅行规划师小周对话</h1>
+                <p>告诉我你的旅行需求，我会为你定制完美行程</p>
+                
+                <!-- 头部操作按钮 -->
+                <div class="absolute right-4 top-4 flex items-center gap-2">
+                    <!-- API测试按钮 -->
+                    <button id="test-api" class="chat-action-button" title="测试API连接">
+                        <i class="fas fa-plug"></i>
+                    </button>
+                    <button id="clear-chat" class="chat-action-button" title="清除聊天记录">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 聊天消息区域 -->
+            <div class="chat-messages">
+                <!-- 消息内容将通过JS动态添加 -->
+                <div class="date-separator">
+                    <span class="date-text">今天</span>
+                </div>
+            </div>
+            
+            <!-- 建议按钮区域 -->
+            <div class="suggestion-container">
+                <div id="suggestion-buttons" class="flex space-x-2 overflow-x-auto">
+                    <!-- 建议按钮会在JS中动态添加 -->
+                </div>
+            </div>
+            
+            <!-- 输入区域 -->
+            <div class="chat-input-container">
+                <!-- 附加功能按钮 -->
+                <div class="chat-extra-actions">
+                    <button class="chat-action-button" id="upload-button" title="上传图片">
+                        <i class="fas fa-image"></i>
+                    </button>
+                    <button class="chat-action-button" id="location-button" title="分享位置">
+                        <i class="fas fa-map-marker-alt"></i>
+                    </button>
+                    <button class="chat-action-button" id="voice-button" title="语音输入">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                </div>
+                
+                <div class="chat-input-wrapper">
+                    <input id="message-input" type="text" placeholder="输入你的旅行需求、问题或目的地..." class="flex-1">
+                    <button id="send-button" aria-label="发送消息">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+                
+                <p class="chat-input-hint">例如："帮我规划一次日本7天之旅" 或 "推荐适合12月份去的目的地"</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 分享菜单 Modal -->
+    <div id="share-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center">
+        <div class="bg-white rounded-xl p-5 max-w-md w-full mx-4">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold">分享旅行计划</h3>
+                <button id="close-share-modal" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="grid grid-cols-3 gap-4 mb-4">
+                <button class="flex flex-col items-center p-3 hover:bg-gray-100 rounded-lg">
+                    <div class="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center text-white mb-2">
+                        <i class="fab fa-weixin text-lg"></i>
+                    </div>
+                    <span class="text-xs">微信</span>
+                </button>
+                <button class="flex flex-col items-center p-3 hover:bg-gray-100 rounded-lg">
+                    <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white mb-2">
+                        <i class="far fa-envelope text-lg"></i>
+                    </div>
+                    <span class="text-xs">邮件</span>
+                </button>
+                <button class="flex flex-col items-center p-3 hover:bg-gray-100 rounded-lg">
+                    <div class="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center text-white mb-2">
+                        <i class="fas fa-link text-lg"></i>
+                    </div>
+                    <span class="text-xs">复制链接</span>
+                </button>
+            </div>
+            <div class="mt-4 pt-4 border-t border-gray-200">
+                <button class="w-full bg-blue-600 text-white py-2 rounded-lg font-medium">
+                    保存到我的行程
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 语音输入 Modal -->
+    <div id="voice-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center">
+        <div class="bg-white rounded-xl p-5 max-w-md w-full mx-4 text-center">
+            <div class="mb-4">
+                <div class="w-20 h-20 bg-blue-100 rounded-full mx-auto flex items-center justify-center">
+                    <i id="voice-icon" class="fas fa-microphone text-blue-600 text-3xl"></i>
+                </div>
+            </div>
+            <p id="voice-status" class="mb-3">点击开始录音</p>
+            <div class="flex justify-center gap-4">
+                <button id="start-voice" class="px-4 py-2 bg-blue-600 text-white rounded-lg">
+                    开始录音
+                </button>
+                <button id="stop-voice" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hidden">
+                    停止录音
+                </button>
+                <button id="close-voice-modal" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg">
+                    取消
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主要脚本 -->
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script>
+        // 检查配置是否正确加载
+        if (!window.AppConfig || !window.AppConfig.API_CONFIG) {
+            console.error('配置加载失败，将使用离线模式');
+        }
+    </script>
+    <script src="js/api.js"></script>
+    <script src="js/itinerary-validator.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/chat.js"></script>
+    <script src="js/components/nav-menu.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化导航菜单组件
+            if (typeof GlobalNavMenu !== 'undefined') {
+                console.log('初始化导航菜单组件');
+                new GlobalNavMenu();
+            }
+            
+            // 初始化聊天
+            console.log('初始化聊天组件');
+            if (typeof window.initChat === 'function') {
+                window.initChat();
+            } else if (window.ChatModule && window.ChatModule.initChat) {
+                window.ChatModule.initChat();
+            } else {
+                console.error('聊天初始化函数未找到');
+            }
+            
+            let isFromHomepage = false;
+            let initializationAttempts = 0;
+            const maxInitAttempts = 20; // 最多尝试20次
+            
+            // 检查模块是否都已加载
+            function checkModulesLoaded() {
+                return window.AppConfig && 
+                       window.AppUtils && 
+                       window.TravelAI && 
+                       window.ChatModule;
+            }
+            
+            // 初始化聊天模块
+            function initChat() {
+                console.log('尝试初始化聊天模块...');
+                console.log('模块状态:', {
+                    AppConfig: !!window.AppConfig,
+                    AppUtils: !!window.AppUtils,
+                    TravelAI: !!window.TravelAI,
+                    ChatModule: !!window.ChatModule
+                });
+                
+                initializationAttempts++;
+                
+                // 检查所有必需的模块是否已加载
+                if (!checkModulesLoaded()) {
+                    if (initializationAttempts < maxInitAttempts) {
+                        console.log(`等待模块加载... (${initializationAttempts}/${maxInitAttempts})`);
+                        setTimeout(initChat, 200);
+                        return;
+                    } else {
+                        console.warn('模块加载超时，使用本地模式');
+                    }
+                }
+                
+                // 防止重复初始化
+                if (window.isChatInitialized) {
+                    console.log('聊天模块已经初始化过，跳过重复初始化');
+                    return;
+                }
+                
+                // 初始化聊天模块
+                if (window.ChatModule && typeof window.ChatModule.init === 'function') {
+                    console.log('开始初始化聊天模块');
+                    window.ChatModule.init({
+                        skipWelcomeMessage: isFromHomepage,
+                        useLocalMode: !window.TravelAI
+                    });
+                    window.isChatInitialized = true;
+                    console.log('聊天模块初始化完成');
+                    
+                    // 如果有URL参数，处理它
+                    handleUrlParameters();
+                } else {
+                    console.error('聊天模块不可用');
+                }
+            }
+            
+            // 处理URL参数
+            function handleUrlParameters() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const question = urlParams.get('q');
+                
+                if (question && question.trim()) {
+                    console.log('收到从首页传来的问题:', question);
+                    isFromHomepage = true;
+                    
+                    const messageInput = document.getElementById('message-input');
+                    if (messageInput) {
+                        messageInput.value = decodeURIComponent(question);
+                    }
+                    
+                    // 延迟发送消息，确保模块已完全初始化
+                    setTimeout(() => {
+                        if (window.ChatModule && window.ChatModule.sendMessage) {
+                            window.ChatModule.sendMessage();
+                        } else {
+                            console.error('ChatModule.sendMessage 不可用');
+                        }
+                    }, 1000);
+                }
+            }
+            
+            // 开始初始化
+            initChat();
+            
+            // 模态框控制
+            const shareButtons = document.querySelectorAll('.share-button');
+            const shareModal = document.getElementById('share-modal');
+            const closeShareModal = document.getElementById('close-share-modal');
+            
+            if (shareButtons.length && shareModal && closeShareModal) {
+                shareButtons.forEach(button => {
+                    button.addEventListener('click', function() {
+                        shareModal.style.display = 'flex';
+                        document.body.style.overflow = 'hidden';
+                    });
+                });
+                
+                closeShareModal.addEventListener('click', function() {
+                    shareModal.style.display = 'none';
+                    document.body.style.overflow = '';
+                });
+                
+                // 点击弹窗外区域也可关闭
+                shareModal.addEventListener('click', function(e) {
+                    if (e.target === shareModal) {
+                        shareModal.style.display = 'none';
+                        document.body.style.overflow = '';
+                    }
+                });
+                
+                // 添加ESC键关闭
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape' && shareModal.style.display === 'flex') {
+                        shareModal.style.display = 'none';
+                        document.body.style.overflow = '';
+                    }
+                });
+            }
+            
+            // 语音模态框控制
+            const voiceButton = document.getElementById('voice-button');
+            const voiceModal = document.getElementById('voice-modal');
+            const closeVoiceModal = document.getElementById('close-voice-modal');
+            const startVoice = document.getElementById('start-voice');
+            const stopVoice = document.getElementById('stop-voice');
+            const voiceStatus = document.getElementById('voice-status');
+            const voiceIcon = document.getElementById('voice-icon');
+            
+            if (voiceButton && voiceModal && closeVoiceModal) {
+                voiceButton.addEventListener('click', function() {
+                    voiceModal.style.display = 'flex';
+                    document.body.style.overflow = 'hidden';
+                });
+                
+                closeVoiceModal.addEventListener('click', function() {
+                    voiceModal.style.display = 'none';
+                    document.body.style.overflow = '';
+                });
+                
+                if (startVoice && stopVoice) {
+                    startVoice.addEventListener('click', function() {
+                        // 模拟语音识别开始
+                        startVoice.classList.add('hidden');
+                        stopVoice.classList.remove('hidden');
+                        voiceStatus.textContent = '正在录音...';
+                        voiceIcon.classList.add('text-red-600');
+                        
+                        // 模拟波形动画
+                        voiceIcon.classList.add('fa-beat');
+                    });
+                    
+                    stopVoice.addEventListener('click', function() {
+                        // 模拟语音识别结束
+                        startVoice.classList.remove('hidden');
+                        stopVoice.classList.add('hidden');
+                        voiceStatus.textContent = '识别中...';
+                        voiceIcon.classList.remove('fa-beat');
+                        
+                        // 模拟识别完成
+                        setTimeout(() => {
+                            voiceModal.style.display = 'none';
+                            document.body.style.overflow = '';
+                            
+                            // 模拟添加识别结果到输入框
+                            const messageInput = document.getElementById('message-input');
+                            if (messageInput) {
+                                messageInput.value = '我想去日本旅游，7天左右，想看樱花';
+                                messageInput.focus();
+                            }
+                        }, 1500);
+                    });
+                }
+            }
+            
+            // 清除聊天记录
+            const clearChat = document.getElementById('clear-chat');
+            if (clearChat) {
+                clearChat.addEventListener('click', function() {
+                    if (confirm('确认要清除所有聊天记录吗？')) {
+                        const chatMessages = document.querySelector('.chat-messages');
+                        if (chatMessages) {
+                            // 保留日期分隔线
+                            const dateSeparator = chatMessages.querySelector('.date-separator');
+                            chatMessages.innerHTML = '';
+                            if (dateSeparator) {
+                                chatMessages.appendChild(dateSeparator);
+                            }
+                            
+                            // 重置对话历史
+                            if (window.ChatModule && window.ChatModule.resetConversation) {
+                                window.ChatModule.resetConversation();
+                            }
+                        }
+                    }
+                });
+            }
+
+            // 添加API测试按钮事件处理
+            const testApiBtn = document.getElementById('test-api');
+            if (testApiBtn) {
+                testApiBtn.addEventListener('click', async function() {
+                    try {
+                        if (!window.TravelAI || !window.TravelAI.testAPIConnection) {
+                            alert('API模块未就绪，无法测试连接');
+                            return;
+                        }
+                        
+                        testApiBtn.disabled = true;
+                        testApiBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                        
+                        const result = await window.TravelAI.testAPIConnection();
+                        
+                        if (result.success) {
+                            alert('API连接测试成功！');
+                        } else {
+                            alert(`API连接测试失败: ${result.message}`);
+                        }
+                    } catch (error) {
+                        console.error('测试API连接时出错:', error);
+                        alert(`测试API连接时出错: ${error.message || '未知错误'}`);
+                    } finally {
+                        testApiBtn.disabled = false;
+                        testApiBtn.innerHTML = '<i class="fas fa-plug"></i>';
+                    }
+                });
+            }
+        });
+    </script>
+
+    <!-- 行程展示优化的JavaScript函数 -->
+    <script>
+        // 切换时间段详情显示/隐藏
+        function togglePeriodDetails(element) {
+            const details = element.closest('.time-period').querySelector('.period-details');
+            const button = element.querySelector('.toggle-period-details');
+            const icon = button.querySelector('i');
+            
+            if (details.classList.contains('hidden')) {
+                details.classList.remove('hidden');
+                button.setAttribute('aria-expanded', 'true');
+                icon.classList.remove('fa-chevron-down');
+                icon.classList.add('fa-chevron-up');
+            } else {
+                details.classList.add('hidden');
+                button.setAttribute('aria-expanded', 'false');
+                icon.classList.remove('fa-chevron-up');
+                icon.classList.add('fa-chevron-down');
+            }
+        }
+        
+        // 切换活动详情显示/隐藏
+        function toggleActivityDetails(element) {
+            const details = element.closest('.activity-item').querySelector('.activity-details');
+            const button = element.querySelector('.toggle-activity-details');
+            const icon = button.querySelector('i');
+            
+            if (details.classList.contains('hidden')) {
+                details.classList.remove('hidden');
+                button.setAttribute('aria-expanded', 'true');
+                icon.classList.remove('fa-chevron-down');
+                icon.classList.add('fa-chevron-up');
+            } else {
+                details.classList.add('hidden');
+                button.setAttribute('aria-expanded', 'false');
+                icon.classList.remove('fa-chevron-up');
+                icon.classList.add('fa-chevron-down');
+            }
+        }
+        
+        // 全局事件监听器，处理动态添加的行程元素
+        document.addEventListener('click', function(e) {
+            // 处理Tab切换
+            if (e.target.classList.contains('tab-btn') || e.target.closest('.tab-btn')) {
+                const btn = e.target.classList.contains('tab-btn') ? e.target : e.target.closest('.tab-btn');
+                const tabId = 'tab-' + btn.dataset.tab;
+                const tabContainer = btn.closest('.itinerary-tabs');
+                
+                if (tabContainer) {
+                    // 移除所有活动状态
+                    tabContainer.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    tabContainer.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+                    
+                    // 设置当前活动Tab
+                    btn.classList.add('active');
+                    const tabPane = tabContainer.querySelector('#' + tabId);
+                    if (tabPane) {
+                        tabPane.classList.add('active');
+                    }
+                }
+            }
+            
+            // 处理天数导航切换
+            if (e.target.classList.contains('day-nav-btn') || e.target.closest('.day-nav-btn')) {
+                const btn = e.target.classList.contains('day-nav-btn') ? e.target : e.target.closest('.day-nav-btn');
+                const dayNum = btn.dataset.day;
+                const dailyContent = btn.closest('.daily-content') || btn.closest('#tab-daily');
+                
+                if (dailyContent) {
+                    // 移除所有活动状态
+                    dailyContent.querySelectorAll('.day-nav-btn').forEach(b => b.classList.remove('active'));
+                    dailyContent.querySelectorAll('.day-detail').forEach(d => d.classList.remove('active'));
+                    
+                    // 设置当前活动天
+                    btn.classList.add('active');
+                    const dayDetail = dailyContent.querySelector('.day-detail[data-day="' + dayNum + '"]');
+                    if (dayDetail) {
+                        dayDetail.classList.add('active');
+                    }
+                }
+            }
+            
+            // 处理时间段折叠/展开
+            if (e.target.classList.contains('period-header') || e.target.closest('.period-header')) {
+                const header = e.target.classList.contains('period-header') ? e.target : e.target.closest('.period-header');
+                togglePeriodDetails(header);
+            }
+            
+            // 处理活动折叠/展开
+            if (e.target.classList.contains('activity-header') || e.target.closest('.activity-header')) {
+                const header = e.target.classList.contains('activity-header') ? e.target : e.target.closest('.activity-header');
+                toggleActivityDetails(header);
+            }
+        });
+        
+        // 在行程生成后初始化UI
+        function initItineraryUI() {
+            // 获取所有时间段详情并默认折叠非第一个
+            const timeperiods = document.querySelectorAll('.time-period');
+            timeperiods.forEach((period, index) => {
+                if (index > 0) { // 默认只展开第一个时间段
+                    const details = period.querySelector('.period-details');
+                    const button = period.querySelector('.toggle-period-details');
+                    const icon = button.querySelector('i');
+                    
+                    if (details && !details.classList.contains('hidden')) {
+                        details.classList.add('hidden');
+                        button.setAttribute('aria-expanded', 'false');
+                        if (icon) {
+                            icon.classList.remove('fa-chevron-up');
+                            icon.classList.add('fa-chevron-down');
+                        }
+                    }
+                }
+            });
+            
+            // 所有活动默认折叠
+            const activities = document.querySelectorAll('.activity-details');
+            activities.forEach(activity => {
+                if (!activity.classList.contains('hidden')) {
+                    activity.classList.add('hidden');
+                    const button = activity.closest('.activity-item').querySelector('.toggle-activity-details');
+                    if (button) {
+                        button.setAttribute('aria-expanded', 'false');
+                        const icon = button.querySelector('i');
+                        if (icon) {
+                            icon.classList.remove('fa-chevron-up');
+                            icon.classList.add('fa-chevron-down');
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 监听DOM变化，检测新添加的行程
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.addedNodes && mutation.addedNodes.length > 0) {
+                    // 检查新添加的节点是否包含行程容器
+                    for (let i = 0; i < mutation.addedNodes.length; i++) {
+                        const node = mutation.addedNodes[i];
+                        if (node.nodeType === 1 && (
+                            node.classList.contains('itinerary-container') || 
+                            node.querySelector('.itinerary-container')
+                        )) {
+                            // 延迟执行初始化，确保DOM已完全更新
+                            setTimeout(initItineraryUI, 300);
+                            break;
+                        }
+                    }
+                }
+            });
+        });
+        
+        // 配置观察器
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+        
+        // 页面加载时也初始化一次
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(initItineraryUI, 300);
+        });
+    </script>
+</body>
+</html> 

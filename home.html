@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>首页 - 小舟AI旅行规划师</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/nav-menu.css">
+    <style>
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        }
+        .hero-section {
+            background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.7)), url('https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2070&q=80');
+            background-size: cover;
+            background-position: center;
+            min-height: 500px;
+        }
+        .suggestion-item {
+            transition: all 0.3s ease;
+        }
+        .suggestion-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .featured-plan {
+            transition: all 0.3s ease;
+        }
+        .featured-plan:hover {
+            transform: translateY(-10px);
+        }
+        .testimonial-card {
+            transition: all 0.3s ease;
+        }
+        .testimonial-card:hover {
+            transform: translateY(-5px);
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="flex flex-col min-h-screen">
+        <!-- 英雄区域 -->
+        <section class="hero-section flex items-center">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
+                <h1 class="text-4xl sm:text-5xl font-bold text-white mb-6">
+                    由AI驱动的<br>个人旅行规划师
+                </h1>
+                <p class="text-xl text-gray-200 mb-10 max-w-2xl mx-auto">
+                    告诉小舟你的旅行想法，我们将为你创建完美的行程计划，包括景点、住宿、餐厅和活动建议。
+                </p>
+                <div class="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
+                    <button onclick="parent.changeFrame('planner.html')" class="btn quick-start-btn">
+                        <i class="fas fa-paper-plane mr-2"></i>开始规划行程
+                    </button>
+                    <button onclick="parent.changeFrame('inspiration.html')" class="btn btn-secondary find-inspiration-btn">
+                        <i class="fas fa-lightbulb mr-2"></i>查找旅行灵感
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 常见问题和建议 -->
+        <section class="container mx-auto px-4 sm:px-6 lg:px-8 py-16">
+            <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 text-center">我能帮你什么？</h2>
+            <p class="text-gray-600 text-center mb-10 max-w-2xl mx-auto">告诉我你的旅行梦想，我会帮你实现它</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- 建议项 1 -->
+                <div class="suggestion-item card hover-card" onclick="parent.changeFrame('planner.html')">
+                    <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mb-4">
+                        <i class="fas fa-map-marked-alt text-xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">我想去哪里旅行？</h3>
+                    <p class="text-gray-600">根据你的兴趣、预算和旅行时长，推荐最适合你的目的地。</p>
+                </div>
+                
+                <!-- 建议项 2 -->
+                <div class="suggestion-item card hover-card" onclick="parent.changeFrame('planner.html?prompt=帮我计划日本之旅')">
+                    <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mb-4">
+                        <i class="fas fa-route text-xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">帮我计划日本之旅</h3>
+                    <p class="text-gray-600">为你定制每一天的详细行程，安排景点、美食和体验活动。</p>
+                </div>
+                
+                <!-- 建议项 3 -->
+                <div class="suggestion-item card hover-card" onclick="parent.changeFrame('planner.html?prompt=预算8000元去哪里')">
+                    <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mb-4">
+                        <i class="fas fa-coins text-xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">预算8000元去哪里？</h3>
+                    <p class="text-gray-600">根据你的预算限制，为你推荐最具性价比的旅行方案。</p>
+                </div>
+                
+                <!-- 建议项 4 -->
+                <div class="suggestion-item card hover-card" onclick="parent.changeFrame('planner.html?prompt=巴黎必吃美食有哪些')">
+                    <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mb-4">
+                        <i class="fas fa-utensils text-xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">巴黎必吃美食有哪些？</h3>
+                    <p class="text-gray-600">推荐当地特色美食、著名餐厅和隐藏的美食宝藏。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 特色旅行计划 -->
+        <section class="bg-gray-100 py-16">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 text-center">精选旅行计划</h2>
+                <p class="text-gray-600 text-center mb-10 max-w-2xl mx-auto">由小舟AI精心策划的旅行灵感</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <!-- 特色计划 1 -->
+                    <div class="featured-plan card overflow-hidden">
+                        <div class="relative">
+                            <img src="https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80" alt="日本之旅" class="w-full h-48 object-cover">
+                            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent py-3 px-4">
+                                <span class="text-white text-sm font-medium">文化探索 • 7天</span>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-2">东京京都经典之旅</h3>
+                            <p class="text-gray-600 text-sm mb-3">体验日本的现代与传统，从东京的繁华到京都的宁静。</p>
+                            <div class="flex justify-between items-center">
+                                <div class="text-blue-600 font-medium">¥8,500 /人起</div>
+                                <button class="text-blue-600 hover:text-blue-800">查看计划 →</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 特色计划 2 -->
+                    <div class="featured-plan card overflow-hidden">
+                        <div class="relative">
+                            <img src="https://images.unsplash.com/photo-1552832230-c0197dd311b5?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1096&q=80" alt="意大利之旅" class="w-full h-48 object-cover">
+                            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent py-3 px-4">
+                                <span class="text-white text-sm font-medium">浪漫美食 • 10天</span>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-2">意大利美食艺术之旅</h3>
+                            <p class="text-gray-600 text-sm mb-3">从罗马到佛罗伦萨再到威尼斯，品味意大利的艺术与美食。</p>
+                            <div class="flex justify-between items-center">
+                                <div class="text-blue-600 font-medium">¥12,800 /人起</div>
+                                <button class="text-blue-600 hover:text-blue-800">查看计划 →</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 特色计划 3 -->
+                    <div class="featured-plan card overflow-hidden">
+                        <div class="relative">
+                            <img src="https://images.unsplash.com/photo-1506665531195-3566af98b0aa?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80" alt="泰国之旅" class="w-full h-48 object-cover">
+                            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent py-3 px-4">
+                                <span class="text-white text-sm font-medium">海滩放松 • 6天</span>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-2">泰国海滩假期</h3>
+                            <p class="text-gray-600 text-sm mb-3">曼谷都市探索与普吉岛、苏梅岛的海滩放松完美结合。</p>
+                            <div class="flex justify-between items-center">
+                                <div class="text-blue-600 font-medium">¥6,200 /人起</div>
+                                <button class="text-blue-600 hover:text-blue-800">查看计划 →</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 用户体验展示 -->
+        <section class="container mx-auto px-4 sm:px-6 lg:px-8 py-16">
+            <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 text-center">旅行者的真实反馈</h2>
+            <p class="text-gray-600 text-center mb-10 max-w-2xl mx-auto">看看其他旅行者如何使用小舟规划他们的完美旅程</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- 用户反馈 1 -->
+                <div class="testimonial-card card">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 mr-3">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-800">陈小明</h4>
+                            <div class="text-yellow-400 flex text-xs">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-gray-600 mb-3">"小舟帮我规划了一次完美的日本之旅！我只需告诉它我的预算和兴趣，它就生成了详细的行程，包括当地特色餐厅和隐藏景点。强烈推荐！"</p>
+                    <p class="text-sm text-gray-500">日本东京-大阪-京都，7天行程</p>
+                </div>
+                
+                <!-- 用户反馈 2 -->
+                <div class="testimonial-card card">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 mr-3">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-800">李文静</h4>
+                            <div class="text-yellow-400 flex text-xs">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star-half-alt"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-gray-600 mb-3">"作为一个独自旅行的女生，安全和舒适是我最关心的。小舟考虑到了所有这些因素，为我规划了一次完美的欧洲之旅。它甚至推荐了适合单身女性的住宿选择！"</p>
+                    <p class="text-sm text-gray-500">法国-瑞士-意大利，12天行程</p>
+                </div>
+                
+                <!-- 用户反馈 3 -->
+                <div class="testimonial-card card">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 mr-3">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-800">张家豪</h4>
+                            <div class="text-yellow-400 flex text-xs">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-gray-600 mb-3">"带着两个孩子旅行通常很困难，但小舟帮我生成了一个对家庭超级友好的计划。包含了很多适合孩子的活动，还有合理的休息时间安排。这绝对改变了我们的家庭旅行体验！"</p>
+                    <p class="text-sm text-gray-500">新加坡-马来西亚，8天家庭行程</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 呼吁行动区域 -->
+        <section class="bg-blue-600 py-16">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <h2 class="text-2xl sm:text-3xl font-bold text-white mb-4">开始规划你的下一次冒险</h2>
+                <p class="text-blue-100 mb-8 max-w-xl mx-auto">只需告诉小舟你想去哪里、想做什么，让AI为你创建完美的个性化旅行计划。</p>
+                <button onclick="parent.changeFrame('planner.html')" class="btn bg-white text-blue-600 hover:bg-blue-50">
+                    <i class="fas fa-rocket mr-2"></i>立即开始免费规划
+                </button>
+                <p class="text-blue-200 mt-4 text-sm">无需注册，立即体验</p>
+            </div>
+        </section>
+
+        <!-- 底部导航 -->
+        <footer class="bg-gray-800 text-white py-8">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex flex-col md:flex-row justify-between">
+                    <div class="mb-6 md:mb-0">
+                        <h2 class="text-xl font-semibold mb-2">小舟AI旅行规划师</h2>
+                        <p class="text-gray-400 max-w-sm">使用人工智能技术，为你创建个性化旅行计划、推荐目的地并回答旅行问题。</p>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-8">
+                        <div>
+                            <h3 class="text-sm font-semibold text-gray-200 uppercase tracking-wider mb-3">功能</h3>
+                            <ul class="space-y-2">
+                                <li><a href="#" class="text-gray-400 hover:text-white">旅行规划</a></li>
+                                <li><a href="#" class="text-gray-400 hover:text-white">目的地推荐</a></li>
+                                <li><a href="#" class="text-gray-400 hover:text-white">旅行灵感</a></li>
+                                <li><a href="#" class="text-gray-400 hover:text-white">旅行问答</a></li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-semibold text-gray-200 uppercase tracking-wider mb-3">关于</h3>
+                            <ul class="space-y-2">
+                                <li><a href="#" class="text-gray-400 hover:text-white">团队</a></li>
+                                <li><a href="#" class="text-gray-400 hover:text-white">技术</a></li>
+                                <li><a href="#" class="text-gray-400 hover:text-white">隐私政策</a></li>
+                                <li><a href="#" class="text-gray-400 hover:text-white">使用条款</a></li>
+                            </ul>
+                        </div>
+                        <div class="col-span-2 md:col-span-1">
+                            <h3 class="text-sm font-semibold text-gray-200 uppercase tracking-wider mb-3">联系我们</h3>
+                            <ul class="space-y-2">
+                                <li class="text-gray-400">
+                                    <i class="fas fa-envelope text-gray-500 mr-2"></i> support@xiaozhouai.com
+                                </li>
+                                <li class="text-gray-400">
+                                    <i class="fas fa-phone text-gray-500 mr-2"></i> +86 123 4567 8901
+                                </li>
+                            </ul>
+                            <div class="mt-4 flex space-x-4">
+                                <a href="#" class="text-gray-400 hover:text-white">
+                                    <i class="fab fa-weixin text-lg"></i>
+                                </a>
+                                <a href="#" class="text-gray-400 hover:text-white">
+                                    <i class="fab fa-weibo text-lg"></i>
+                                </a>
+                                <a href="#" class="text-gray-400 hover:text-white">
+                                    <i class="fab fa-twitter text-lg"></i>
+                                </a>
+                                <a href="#" class="text-gray-400 hover:text-white">
+                                    <i class="fab fa-instagram text-lg"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-8 pt-8 border-t border-gray-700 text-center">
+                    <p class="text-gray-400 text-sm">© 2023 小舟AI旅行规划师. 保留所有权利.</p>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- 返回顶部按钮 -->
+    <button class="back-to-top fixed bottom-8 right-8 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg hidden">
+        <i class="fas fa-chevron-up"></i>
+    </button>
+
+    <!-- 引入依赖库 -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- 按顺序引入应用脚本 -->
+    <script src="js/config.js" defer></script>
+    <script src="js/utils.js" defer></script>
+    <script src="js/api.js" defer></script>
+    <script src="js/main.js" defer></script>
+    <script src="js/components/nav-menu.js"></script>
+    <script>
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 为卡片添加点击效果
+            const hoverCards = document.querySelectorAll('.hover-card');
+            hoverCards.forEach(card => {
+                card.addEventListener('mouseenter', () => {
+                    card.style.transform = 'translateY(-5px)';
+                    card.style.boxShadow = 'var(--shadow-md)';
+                });
+                
+                card.addEventListener('mouseleave', () => {
+                    card.style.transform = 'translateY(0)';
+                    card.style.boxShadow = 'var(--shadow-sm)';
+                });
+            });
+        });
+    </script>
+</body>
+</html> 
