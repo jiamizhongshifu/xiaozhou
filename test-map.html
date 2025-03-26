@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高德地图MCP服务测试</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        .container {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .map-container {
+            width: 100%;
+            height: 500px;
+            margin: 20px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .control-panel {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        .log-panel {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-bottom: 1px solid #eee;
+        }
+        .success {
+            color: #28a745;
+        }
+        .error {
+            color: #dc3545;
+        }
+        .info {
+            color: #17a2b8;
+        }
+        button {
+            padding: 8px 15px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0069d9;
+        }
+        input {
+            padding: 8px;
+            margin-right: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 300px;
+        }
+        .alert {
+            padding: 10px 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            color: #721c24;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+    <!-- 配置高德地图安全密钥 -->
+    <script type="text/javascript">
+        window._AMapSecurityConfig = {
+            securityJsCode: "1a71e60ee7280471a37c7f97d105258a"
+        };
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>高德地图MCP服务测试</h1>
+        
+        <!-- 错误提示区域 -->
+        <div id="error-container" style="display: none;" class="alert"></div>
+        
+        <div class="control-panel">
+            <h3>API密钥: <span id="api-key"></span></h3>
+            <h3>安全密钥: <span id="security-key">已配置</span></h3>
+            <h3>MCP状态: <span id="mcp-status">检测中...</span></h3>
+            <h3>MCP端点: <span id="mcp-endpoint">加载中...</span></h3>
+            <div>
+                <input type="text" id="search-input" placeholder="输入地点名称，例如: 北京故宫">
+                <button id="search-btn">搜索位置</button>
+            </div>
+            <div>
+                <button id="test-mcp">测试MCP服务</button>
+                <button id="test-sdk">测试SDK</button>
+                <button id="test-geocode">测试地理编码</button>
+                <button id="clear-log">清空日志</button>
+            </div>
+        </div>
+        
+        <div id="map-container" class="map-container"></div>
+        
+        <div class="log-panel">
+            <h3>测试日志</h3>
+            <div id="log-container"></div>
+        </div>
+    </div>
+
+    <!-- 初始化MCP全局配置，解决可能的JSON解析错误 -->
+    <script>
+        // 直接创建MCP全局配置，避免mcp.json加载出错
+        window.mcpServers = {
+            "@amap/amap-maps": {
+                "url": "https://router.mcp.so/sse/lbdbqom8omdc9p"
+            }
+        };
+        
+        // 全局错误处理
+        window.addEventListener('error', function(event) {
+            console.log('捕获到全局错误:', event.message);
+            
+            // 显示错误信息
+            const errorContainer = document.getElementById('error-container');
+            if (errorContainer) {
+                if (event.message.includes('mcp.json') || event.message.includes('Unexpected token')) {
+                    errorContainer.textContent = '提示: MCP配置文件格式错误已被自动处理，使用默认配置继续运行。';
+                    errorContainer.style.display = 'block';
+                }
+            }
+            
+            // 防止错误继续冒泡
+            event.preventDefault();
+        });
+    </script>
+
+    <!-- 首先加载配置 -->
+    <script src="js/config.js"></script>
+    
+    <!-- 预加载高德地图API，确保插件可用 -->
+    <script src="https://webapi.amap.com/maps?v=2.0&key=977ce94e6764e8d46520db16573caf06&plugin=AMap.Geocoder,AMap.PlaceSearch"></script>
+    <script src="https://webapi.amap.com/ui/1.1/main.js?v=1.1.1"></script>
+    
+    <script src="js/location-service.js"></script>
+    
+    <script>
+        // 全局变量
+        let locationService = null;
+        let map = null;
+        
+        // 日志函数
+        function log(message, type = 'info') {
+            const logContainer = document.getElementById('log-container');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
+            logContainer.prepend(logEntry);
+            console.log(`[${type}] ${message}`);
+        }
+        
+        // 初始化地图
+        async function initMap() {
+            try {
+                const mapContainer = document.getElementById('map-container');
+                
+                // 检查并显示MCP端点
+                const mcpEndpoint = window.AppConfig && window.AppConfig.MCP_CONFIG ? 
+                    window.AppConfig.MCP_CONFIG.ENDPOINT : 
+                    'https://router.mcp.so/sse/lbdbqom8omdc9p';
+                
+                document.getElementById('mcp-endpoint').textContent = mcpEndpoint;
+                log(`使用MCP端点: ${mcpEndpoint}`);
+                
+                // 首先尝试直接使用SDK方式创建地图
+                try {
+                    log('优先尝试使用SDK方式创建地图');
+                    createDirectMap();
+                    
+                    // 在后台继续尝试MCP方式
+                    setTimeout(() => {
+                        tryLoadMcpClient(mcpEndpoint);
+                    }, 1000);
+                    
+                    return;
+                } catch (sdkError) {
+                    log('SDK方式创建地图失败，尝试MCP方式: ' + sdkError.message, 'error');
+                }
+                
+                // 尝试MCP方式创建地图
+                await tryLoadMcpClient(mcpEndpoint);
+                
+            } catch (error) {
+                log('地图初始化完全失败: ' + error.message, 'error');
+                document.getElementById('error-container').textContent = '地图加载失败: ' + error.message;
+                document.getElementById('error-container').style.display = 'block';
+            }
+        }
+        
+        // 尝试加载MCP客户端
+        async function tryLoadMcpClient(mcpEndpoint) {
+            try {
+                // 检查MCP客户端是否存在
+                if (window.MCP && window.MCP.amap) {
+                    log('MCP客户端已存在，直接使用');
+                    document.getElementById('mcp-status').textContent = '已加载';
+                    document.getElementById('mcp-status').className = 'success';
+                    
+                    createMapWithMcp(mcpEndpoint);
+                } else {
+                    log('加载MCP客户端');
+                    
+                    // 设置加载超时
+                    const mcpLoadPromise = new Promise((resolve, reject) => {
+                        const timeout = setTimeout(() => {
+                            reject(new Error('MCP客户端加载超时'));
+                        }, 5000);
+                        
+                        const script = document.createElement('script');
+                        script.src = 'https://mcp.so/client/amap-maps.js';
+                        script.async = true;
+                        
+                        script.onload = () => {
+                            clearTimeout(timeout);
+                            
+                            if (!window.MCP || !window.MCP.amap) {
+                                log('MCP客户端加载失败，尝试初始化', 'error');
+                                
+                                // 尝试初始化
+                                try {
+                                    if (window.MCP && window.MCP.init) {
+                                        window.MCP.init();
+                                        if (window.MCP.amap) {
+                                            log('MCP客户端初始化成功', 'success');
+                                            document.getElementById('mcp-status').textContent = '已加载(通过初始化)';
+                                            document.getElementById('mcp-status').className = 'success';
+                                            resolve();
+                                            return;
+                                        }
+                                    }
+                                } catch (e) {
+                                    log(`MCP初始化失败: ${e.message}`, 'error');
+                                }
+                                
+                                document.getElementById('mcp-status').textContent = '加载失败';
+                                document.getElementById('mcp-status').className = 'error';
+                                reject(new Error('MCP客户端加载失败'));
+                                return;
+                            }
+                            
+                            log('MCP客户端加载成功', 'success');
+                            document.getElementById('mcp-status').textContent = '已加载';
+                            document.getElementById('mcp-status').className = 'success';
+                            resolve();
+                        };
+                        
+                        script.onerror = (err) => {
+                            clearTimeout(timeout);
+                            log('MCP客户端加载失败: ' + (err.message || '网络错误'), 'error');
+                            document.getElementById('mcp-status').textContent = '加载失败';
+                            document.getElementById('mcp-status').className = 'error';
+                            reject(err);
+                        };
+                        
+                        document.head.appendChild(script);
+                    });
+                    
+                    // 等待MCP加载
+                    await mcpLoadPromise;
+                    
+                    // 配置MCP客户端
+                    window.MCP.amap.configure({
+                        apiKey: window.AppConfig.MAP_API_KEY,
+                        endpoint: mcpEndpoint
+                    });
+                    log('MCP客户端配置完成，API密钥: ' + window.AppConfig.MAP_API_KEY, 'success');
+                    
+                    // 创建地图
+                    createMapWithMcp(mcpEndpoint);
+                }
+            } catch (mcpError) {
+                log('MCP加载失败，已使用SDK方式: ' + mcpError.message, 'error');
+                // 确保地图已创建
+                if (!map) {
+                    createDirectMap();
+                }
+            }
+        }
+        
+        // 使用MCP创建地图
+        async function createMapWithMcp(mcpEndpoint) {
+            try {
+                // 创建地图
+                log('使用MCP创建地图实例');
+                map = await window.MCP.amap.createMap(document.getElementById('map-container'), {
+                    zoom: 12,
+                    center: [116.397428, 39.90923] // 北京
+                });
+                
+                log('MCP地图创建成功', 'success');
+                
+                // 初始化位置服务
+                initLocationService(true);
+            } catch (error) {
+                log('使用MCP创建地图失败: ' + error.message, 'error');
+                // 使用SDK方式作为备选
+                createDirectMap();
+            }
+        }
+        
+        // 直接加载高德地图API（不使用MCP）
+        function createDirectMap() {
+            try {
+                log('使用SDK方式创建地图', 'info');
+                
+                const mapContainer = document.getElementById('map-container');
+                map = new AMap.Map(mapContainer, {
+                    zoom: 12,
+                    center: [116.397428, 39.90923] // 北京
+                });
+                
+                log('SDK地图创建成功', 'success');
+                document.getElementById('mcp-status').textContent = '未使用 (直接API)';
+                
+                // 初始化位置服务
+                initLocationService(false);
+            } catch (error) {
+                log('SDK地图创建失败: ' + error.message, 'error');
+                throw error;
+            }
+        }
+        
+        // 初始化位置服务
+        function initLocationService(useMcp = false) {
+            try {
+                if (!window.LocationService) {
+                    log('LocationService未加载', 'error');
+                    return;
+                }
+                
+                log('初始化位置服务');
+                locationService = new LocationService(window.AppConfig.MAP_API_KEY);
+                
+                // 配置MCP
+                locationService.enableMcpService(useMcp);
+                
+                // 如果有全局MCP配置，使用它
+                if (window.AppConfig && window.AppConfig.MCP_CONFIG && window.AppConfig.MCP_CONFIG.ENDPOINT) {
+                    locationService.setMcpEndpoint(window.AppConfig.MCP_CONFIG.ENDPOINT);
+                }
+                
+                // 初始化
+                locationService.init().then(() => {
+                    log('位置服务初始化完成', 'success');
+                }).catch(error => {
+                    log('位置服务初始化失败: ' + error.message, 'error');
+                });
+            } catch (error) {
+                log('位置服务创建失败: ' + error.message, 'error');
+            }
+        }
+        
+        // 测试MCP服务
+        async function testMcpService() {
+            if (!window.MCP || !window.MCP.amap) {
+                log('MCP服务不可用', 'error');
+                return;
+            }
+            
+            try {
+                log('测试MCP地理编码服务');
+                const result = await window.MCP.amap.geocode({
+                    address: '北京天安门'
+                });
+                
+                if (result && result.geocodes && result.geocodes.length > 0) {
+                    const location = result.geocodes[0].location;
+                    log(`MCP地理编码成功: ${JSON.stringify(location)}`, 'success');
+                    
+                    // 在地图上添加标记
+                    if (map) {
+                        await window.MCP.amap.createMarker(map, {
+                            position: [location.lng, location.lat],
+                            title: '北京天安门',
+                            offset: { x: 0, y: 0 }
+                        });
+                        
+                        // 设置地图中心
+                        await window.MCP.amap.setFitView(map);
+                        log('地图标记已添加', 'success');
+                    }
+                } else {
+                    log('MCP地理编码无结果', 'error');
+                }
+            } catch (error) {
+                log('MCP服务测试失败: ' + error.message, 'error');
+            }
+        }
+        
+        // 测试SDK服务
+        async function testSdkService() {
+            if (!window.AMap) {
+                log('高德地图SDK不可用', 'error');
+                return;
+            }
+            
+            try {
+                log('测试SDK地理编码服务');
+                
+                // 加载地理编码插件
+                if (!AMap.Geocoder) {
+                    log('加载Geocoder插件');
+                    await new Promise(resolve => {
+                        AMap.plugin('AMap.Geocoder', function() {
+                            log('Geocoder插件加载成功');
+                            resolve();
+                        });
+                    });
+                }
+                
+                // 创建地理编码对象
+                const geocoder = new AMap.Geocoder();
+                
+                // 地理编码
+                geocoder.getLocation('上海东方明珠', (status, result) => {
+                    if (status === 'complete' && result.geocodes.length) {
+                        const location = result.geocodes[0].location;
+                        log(`SDK地理编码成功: ${location.lng}, ${location.lat}`, 'success');
+                        
+                        // 在地图上添加标记
+                        if (map) {
+                            const marker = new AMap.Marker({
+                                position: [location.lng, location.lat],
+                                title: '上海东方明珠'
+                            });
+                            marker.setMap(map);
+                            
+                            // 设置地图中心
+                            map.setCenter([location.lng, location.lat]);
+                            log('地图标记已添加', 'success');
+                        }
+                    } else {
+                        log('SDK地理编码失败: ' + status, 'error');
+                    }
+                });
+            } catch (error) {
+                log('SDK服务测试失败: ' + error.message, 'error');
+            }
+        }
+        
+        // 测试位置服务的地理编码
+        async function testLocationServiceGeocode() {
+            if (!locationService) {
+                log('位置服务未初始化', 'error');
+                return;
+            }
+            
+            try {
+                log('测试位置服务地理编码');
+                const coordinates = await locationService.getCoordinatesByAddress('广州塔');
+                
+                if (coordinates) {
+                    log(`位置服务地理编码成功: ${coordinates[0]}, ${coordinates[1]}`, 'success');
+                    
+                    // 在地图上添加标记
+                    if (map) {
+                        if (window.MCP && window.MCP.amap && locationService.mcpConfig.enabled) {
+                            // 使用MCP添加标记
+                            await window.MCP.amap.createMarker(map, {
+                                position: coordinates,
+                                title: '广州塔',
+                                offset: { x: 0, y: 0 }
+                            });
+                        } else if (window.AMap) {
+                            // 使用SDK添加标记
+                            const marker = new AMap.Marker({
+                                position: coordinates,
+                                title: '广州塔'
+                            });
+                            marker.setMap(map);
+                        }
+                        
+                        // 设置地图中心
+                        if (window.MCP && window.MCP.amap && locationService.mcpConfig.enabled) {
+                            await window.MCP.amap.setCenter(map, coordinates);
+                        } else if (map.setCenter) {
+                            map.setCenter(coordinates);
+                        }
+                        
+                        log('地图标记已添加', 'success');
+                    }
+                } else {
+                    log('位置服务地理编码无结果', 'error');
+                }
+            } catch (error) {
+                log('位置服务地理编码测试失败: ' + error.message, 'error');
+            }
+        }
+        
+        // 搜索位置
+        async function searchLocation() {
+            const searchInput = document.getElementById('search-input');
+            const keyword = searchInput.value.trim();
+            
+            if (!keyword) {
+                log('请输入搜索关键词', 'info');
+                return;
+            }
+            
+            if (!locationService) {
+                log('位置服务未初始化', 'error');
+                return;
+            }
+            
+            try {
+                log(`搜索位置: ${keyword}`);
+                const coordinates = await locationService.getCoordinatesByAddress(keyword);
+                
+                if (coordinates) {
+                    log(`位置搜索成功: ${coordinates[0]}, ${coordinates[1]}`, 'success');
+                    
+                    // 在地图上添加标记
+                    if (map) {
+                        if (window.MCP && window.MCP.amap && locationService.mcpConfig.enabled) {
+                            // 使用MCP添加标记
+                            await window.MCP.amap.createMarker(map, {
+                                position: coordinates,
+                                title: keyword,
+                                offset: { x: 0, y: 0 }
+                            });
+                            await window.MCP.amap.setCenter(map, coordinates);
+                            await window.MCP.amap.setZoom(map, 14);
+                        } else if (window.AMap) {
+                            // 使用SDK添加标记
+                            const marker = new AMap.Marker({
+                                position: coordinates,
+                                title: keyword
+                            });
+                            marker.setMap(map);
+                            map.setCenter(coordinates);
+                            map.setZoom(14);
+                        }
+                        
+                        log('地图标记已添加', 'success');
+                    }
+                } else {
+                    log('位置搜索无结果', 'error');
+                }
+            } catch (error) {
+                log('位置搜索失败: ' + error.message, 'error');
+            }
+        }
+        
+        // 页面加载完成后执行
+        window.onload = function() {
+            // 显示API密钥
+            document.getElementById('api-key').textContent = window.AppConfig.MAP_API_KEY || '未设置';
+            
+            // 初始化地图 - 使用SDK方式作为主要方式
+            initMap();
+            
+            // 添加事件监听
+            document.getElementById('test-mcp').addEventListener('click', testMcpService);
+            document.getElementById('test-sdk').addEventListener('click', testSdkService);
+            document.getElementById('test-geocode').addEventListener('click', testLocationServiceGeocode);
+            document.getElementById('search-btn').addEventListener('click', searchLocation);
+            document.getElementById('clear-log').addEventListener('click', () => {
+                document.getElementById('log-container').innerHTML = '';
+            });
+            
+            // 搜索框回车事件
+            document.getElementById('search-input').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    searchLocation();
+                }
+            });
+        };
+    </script>
+</body>
+</html> 

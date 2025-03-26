@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高德地图MCP服务测试</title>
+    <!-- 配置高德地图安全密钥 -->
+    <script type="text/javascript">
+        window._AMapSecurityConfig = {
+            securityJsCode: "1a71e60ee7280471a37c7f97d105258a"
+        };
+    </script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        header {
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            margin-top: 0;
+            color: #0071e3;
+        }
+        .info-panel {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .test-panel {
+            margin-top: 20px;
+        }
+        #test-results {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            min-height: 100px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .test-result {
+            padding: 8px;
+            margin-bottom: 5px;
+            border-radius: 3px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border-left: 3px solid #28a745;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border-left: 3px solid #dc3545;
+        }
+        .info {
+            background-color: #e2f0fb;
+            color: #0c5460;
+            border-left: 3px solid #17a2b8;
+        }
+        button {
+            background-color: #0071e3;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+            font-size: 14px;
+        }
+        button:hover {
+            background-color: #005bb5;
+        }
+        .manual-test {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 250px;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>高德地图MCP服务测试</h1>
+        </header>
+        
+        <div class="info-panel">
+            <h3>API密钥: <span id="api-key">加载中...</span></h3>
+            <h3>安全密钥: <span id="security-key">已配置</span></h3>
+            <p>本测试将通过MCP服务验证高德地图API的功能，包括地理编码、逆地理编码和POI搜索。</p>
+        </div>
+        
+        <div class="test-panel">
+            <button id="run-tests">运行所有测试</button>
+            <button id="clear-results">清空结果</button>
+            
+            <div class="manual-test">
+                <h3>手动测试地理编码</h3>
+                <div>
+                    <input type="text" id="geocode-input" placeholder="输入地址，例如: 上海外滩">
+                    <button id="test-geocode">测试地理编码</button>
+                </div>
+                
+                <h3>手动测试POI搜索</h3>
+                <div>
+                    <input type="text" id="poi-keyword" placeholder="关键词，例如: 餐厅">
+                    <input type="text" id="poi-city" placeholder="城市，例如: 北京">
+                    <button id="test-poi">测试POI搜索</button>
+                </div>
+            </div>
+            
+            <h3>测试结果</h3>
+            <div id="test-results">
+                <div class="test-result info">准备开始测试，请点击"运行所有测试"按钮...</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 加载配置和测试脚本 -->
+    <script src="js/config.js"></script>
+    <script src="mcp-test.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 获取并显示API密钥
+            const apiKey = window.AppConfig ? window.AppConfig.MAP_API_KEY : '未设置';
+            document.getElementById('api-key').textContent = apiKey;
+            
+            // 添加按钮事件监听
+            document.getElementById('run-tests').addEventListener('click', function() {
+                clearResults();
+                appendResult('开始运行所有测试...', 'info');
+                
+                // 延迟执行，以确保UI更新
+                setTimeout(() => {
+                    if (window.MCPTest) {
+                        window.MCPTest.run();
+                    } else {
+                        appendResult('测试脚本未正确加载', 'error');
+                    }
+                }, 100);
+            });
+            
+            document.getElementById('clear-results').addEventListener('click', clearResults);
+            
+            // 地理编码测试
+            document.getElementById('test-geocode').addEventListener('click', async function() {
+                const address = document.getElementById('geocode-input').value.trim();
+                if (!address) {
+                    appendResult('请输入地址', 'info');
+                    return;
+                }
+                
+                appendResult(`开始测试地理编码: "${address}"`, 'info');
+                
+                try {
+                    const mcpClient = await initMCPClient();
+                    const result = await window.MCPTest.testGeocode(mcpClient, apiKey, address);
+                    
+                    if (result) {
+                        appendResult(`地理编码成功: [${result.lng}, ${result.lat}]`, 'success');
+                    } else {
+                        appendResult('地理编码失败或无结果', 'error');
+                    }
+                } catch (error) {
+                    appendResult(`测试出错: ${error.message}`, 'error');
+                }
+            });
+            
+            // POI搜索测试
+            document.getElementById('test-poi').addEventListener('click', async function() {
+                const keyword = document.getElementById('poi-keyword').value.trim();
+                const city = document.getElementById('poi-city').value.trim();
+                
+                if (!keyword) {
+                    appendResult('请输入搜索关键词', 'info');
+                    return;
+                }
+                
+                appendResult(`开始测试POI搜索: "${keyword}" in "${city || '全国'}"`, 'info');
+                
+                try {
+                    const mcpClient = await initMCPClient();
+                    const results = await window.MCPTest.testPoiSearch(mcpClient, keyword, city || '全国');
+                    
+                    if (results && results.length) {
+                        appendResult(`POI搜索成功，找到${results.length}个结果`, 'success');
+                        appendResult(`第一个结果: ${results[0].name} (${results[0].address || '无地址'})`, 'info');
+                    } else {
+                        appendResult('POI搜索无结果', 'error');
+                    }
+                } catch (error) {
+                    appendResult(`测试出错: ${error.message}`, 'error');
+                }
+            });
+            
+            // 工具函数
+            async function initMCPClient() {
+                if (!window.MCP || !window.MCP.amap) {
+                    appendResult('正在加载MCP客户端...', 'info');
+                    await loadMCPClient();
+                }
+                
+                return window.MCP.amap;
+            }
+            
+            function loadMCPClient() {
+                return new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = 'https://mcp.so/client/amap-maps.js';
+                    script.async = true;
+                    
+                    script.onload = () => {
+                        if (!window.MCP || !window.MCP.amap) {
+                            appendResult('MCP客户端加载失败', 'error');
+                            reject(new Error('MCP客户端加载失败'));
+                            return;
+                        }
+                        
+                        appendResult('MCP客户端加载成功', 'success');
+                        resolve();
+                    };
+                    
+                    script.onerror = () => {
+                        appendResult('MCP客户端加载失败', 'error');
+                        reject(new Error('MCP客户端加载失败'));
+                    };
+                    
+                    document.head.appendChild(script);
+                });
+            }
+            
+            function clearResults() {
+                const resultsContainer = document.getElementById('test-results');
+                resultsContainer.innerHTML = '';
+            }
+            
+            function appendResult(message, type = 'info') {
+                const resultsContainer = document.getElementById('test-results');
+                const resultItem = document.createElement('div');
+                resultItem.className = `test-result ${type}`;
+                resultItem.textContent = message;
+                resultsContainer.appendChild(resultItem);
+                
+                // 滚动到底部
+                resultsContainer.scrollTop = resultsContainer.scrollHeight;
+            }
+        });
+    </script>
+</body>
+</html> 

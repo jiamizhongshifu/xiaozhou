@@ -1,0 +1,9 @@
+{
+    "ENDPOINT": "https://router.mcp.so/sse/lbdbqom8omdc9p",
+    "API_KEY": "977ce94e6764e8d46520db16573caf06",
+    "SECURITY_KEY": "c03d6a90e0ca4ec2b2d76a72a6803f39",
+    "TIMEOUT": 30000,
+    "RETRY_COUNT": 3,
+    "RETRY_DELAY": 1000,
+    "DEBUG": false
+} 

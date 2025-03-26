@@ -470,19 +470,42 @@ async function processUserMessage(text) {
             // 先添加文本消息
             addBotMessage('您好！看起来您正在计划一次旅行。为了给您提供更好的建议，请填写以下信息：');
             
-            // 创建并显示表单
-            const travelForm = createTravelPlanForm();
-            console.log('创建的表单对象:', travelForm);
-            
-            // 确保表单对象是有效的
-            if (travelForm && travelForm.type === MessageType.FORM && travelForm.content) {
-                setTimeout(() => {
-                    addBotMessage(travelForm);
-                }, 500);
-            } else {
-                console.error('表单对象无效:', travelForm);
+            try {
+                // 创建并显示表单 - 处理异步函数
+                console.log('准备创建旅行计划表单...');
+                let travelForm;
+                
+                if (typeof createTravelPlanForm === 'function') {
+                    // 检查函数是否返回Promise
+                    const result = createTravelPlanForm();
+                    if (result instanceof Promise) {
+                        console.log('createTravelPlanForm返回Promise，等待结果...');
+                        travelForm = await result;
+                    } else {
+                        console.log('createTravelPlanForm返回同步结果');
+                        travelForm = result;
+                    }
+                    
+                    console.log('创建的表单对象:', travelForm);
+                    
+                    // 确保表单对象是有效的
+                    if (travelForm && travelForm.type === MessageType.FORM && travelForm.content) {
+                        setTimeout(() => {
+                            addBotMessage(travelForm);
+                        }, 500);
+                    } else {
+                        console.error('表单对象无效:', travelForm);
+                        addBotMessage('抱歉，创建表单时出现了问题。请直接告诉我您想去哪里旅行，以及您的偏好。');
+                    }
+                } else {
+                    console.error('createTravelPlanForm函数不可用');
+                    addBotMessage('抱歉，创建表单功能暂时不可用。请直接告诉我您想去哪里旅行，以及您的偏好。');
+                }
+            } catch (formError) {
+                console.error('创建或显示表单时出错:', formError);
                 addBotMessage('抱歉，创建表单时出现了问题。请直接告诉我您想去哪里旅行，以及您的偏好。');
             }
+            
             return;
         }
 
@@ -1049,10 +1072,11 @@ function processFormSubmission(form, formId) {
  * @param {HTMLElement} container - 容器元素
  * @param {string} content - 行程内容
  */
-function renderItineraryMessage(container, content) {
-    // 格式化行程内容
-    const formattedItinerary = formatItinerary(content);
-    container.innerHTML = formattedItinerary;
+function renderItineraryMessage(content) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message message-bot itinerary-message';
+    messageDiv.innerHTML = content;
+    return messageDiv;
 }
 
 /**
@@ -3951,19 +3975,42 @@ async function processUserMessage(text) {
             // 先添加文本消息
             addBotMessage('您好！看起来您正在计划一次旅行。为了给您提供更好的建议，请填写以下信息：');
             
-            // 创建并显示表单
-            const travelForm = createTravelPlanForm();
-            console.log('创建的表单对象:', travelForm);
-            
-            // 确保表单对象是有效的
-            if (travelForm && travelForm.type === MessageType.FORM && travelForm.content) {
-                setTimeout(() => {
-                    addBotMessage(travelForm);
-                }, 500);
-            } else {
-                console.error('表单对象无效:', travelForm);
+            try {
+                // 创建并显示表单 - 处理异步函数
+                console.log('准备创建旅行计划表单...');
+                let travelForm;
+                
+                if (typeof createTravelPlanForm === 'function') {
+                    // 检查函数是否返回Promise
+                    const result = createTravelPlanForm();
+                    if (result instanceof Promise) {
+                        console.log('createTravelPlanForm返回Promise，等待结果...');
+                        travelForm = await result;
+                    } else {
+                        console.log('createTravelPlanForm返回同步结果');
+                        travelForm = result;
+                    }
+                    
+                    console.log('创建的表单对象:', travelForm);
+                    
+                    // 确保表单对象是有效的
+                    if (travelForm && travelForm.type === MessageType.FORM && travelForm.content) {
+                        setTimeout(() => {
+                            addBotMessage(travelForm);
+                        }, 500);
+                    } else {
+                        console.error('表单对象无效:', travelForm);
+                        addBotMessage('抱歉，创建表单时出现了问题。请直接告诉我您想去哪里旅行，以及您的偏好。');
+                    }
+                } else {
+                    console.error('createTravelPlanForm函数不可用');
+                    addBotMessage('抱歉，创建表单功能暂时不可用。请直接告诉我您想去哪里旅行，以及您的偏好。');
+                }
+            } catch (formError) {
+                console.error('创建或显示表单时出错:', formError);
                 addBotMessage('抱歉，创建表单时出现了问题。请直接告诉我您想去哪里旅行，以及您的偏好。');
             }
+            
             return;
         }
 

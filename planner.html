@@ -905,7 +905,7 @@
         </div>
     </div>
 
-    <!-- 主要脚本 -->
+    <!-- Core Scripts -->
     <script src="js/config.js"></script>
     <script src="js/utils.js"></script>
     <script>
@@ -914,6 +914,16 @@
             console.error('配置加载失败，将使用离线模式');
         }
     </script>
+    
+    <!-- 引入智能表单预填充模块 -->
+    <script src="js/modules/context-cache.js"></script>
+    <script src="js/modules/conversation-analyzer.js"></script>
+    <script src="js/modules/form-prefill-manager.js"></script>
+    <script src="js/modules/module-loader.js"></script>
+    <script src="js/modules/bootstrap.js"></script>
+    <script src="js/modules/form-integration.js"></script>
+    
+    <!-- Application Scripts -->
     <script src="js/api.js"></script>
     <script src="js/itinerary-validator.js"></script>
     <script src="js/main.js"></script>

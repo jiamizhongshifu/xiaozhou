@@ -145,11 +145,108 @@ async function initializeUtils() {
           }
         }
         
+        // 用户偏好管理器
+        class PreferencesManager {
+            constructor() {
+                this.storageKey = 'xiaozhou_user_preferences';
+                this.version = '1.0';
+                this.defaults = {
+                    expandedCards: [],
+                    activeTab: 'overview',
+                    theme: 'light',
+                    fontSize: 'medium',
+                    lastViewedDay: 0
+                };
+            }
+
+            // 获取所有偏好设置
+            getAll() {
+                try {
+                    const stored = localStorage.getItem(this.storageKey);
+                    if (!stored) return this.defaults;
+
+                    const preferences = JSON.parse(stored);
+                    // 版本检查和数据迁移
+                    if (preferences.version !== this.version) {
+                        return this.migrateData(preferences);
+                    }
+                    return { ...this.defaults, ...preferences };
+                } catch (error) {
+                    console.error('读取偏好设置失败:', error);
+                    return this.defaults;
+                }
+            }
+
+            // 获取特定偏好设置
+            get(key) {
+                const preferences = this.getAll();
+                return preferences[key] ?? this.defaults[key];
+            }
+
+            // 设置偏好
+            set(key, value) {
+                try {
+                    const preferences = this.getAll();
+                    preferences[key] = value;
+                    preferences.version = this.version;
+                    localStorage.setItem(this.storageKey, JSON.stringify(preferences));
+                    return true;
+                } catch (error) {
+                    console.error('保存偏好设置失败:', error);
+                    return false;
+                }
+            }
+
+            // 批量更新偏好
+            update(newPreferences) {
+                try {
+                    const preferences = this.getAll();
+                    Object.assign(preferences, newPreferences);
+                    preferences.version = this.version;
+                    localStorage.setItem(this.storageKey, JSON.stringify(preferences));
+                    return true;
+                } catch (error) {
+                    console.error('批量更新偏好设置失败:', error);
+                    return false;
+                }
+            }
+
+            // 重置偏好到默认值
+            reset() {
+                try {
+                    localStorage.setItem(this.storageKey, JSON.stringify({
+                        ...this.defaults,
+                        version: this.version
+                    }));
+                    return true;
+                } catch (error) {
+                    console.error('重置偏好设置失败:', error);
+                    return false;
+                }
+            }
+
+            // 数据迁移
+            migrateData(oldData) {
+                // 在这里处理不同版本间的数据迁移
+                const newData = { ...this.defaults };
+                
+                // 保留兼容的旧数据
+                if (oldData.expandedCards) newData.expandedCards = oldData.expandedCards;
+                if (oldData.activeTab) newData.activeTab = oldData.activeTab;
+                if (oldData.theme) newData.theme = oldData.theme;
+                
+                // 保存迁移后的数据
+                this.update(newData);
+                return newData;
+            }
+        }
+        
         // 导出工具类
         window.AppUtils = {
             CacheManager,
             MetricsManager,
             ErrorHandler,
+            PreferencesManager,
             isInitialized: true
         };
         

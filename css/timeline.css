@@ -1,0 +1,387 @@
+/* 时间轴样式文件 */
+
+/* 基础时间轴容器 */
+.timeline-container {
+    margin: 20px 0;
+    position: relative;
+    padding: 0;
+}
+
+/* 垂直时间轴样式 */
+.timeline-vertical {
+    display: flex;
+    flex-direction: column;
+}
+
+.timeline-vertical .timeline-line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 80px;
+    width: 3px;
+    background: linear-gradient(to bottom, #f0f0f0, #0071e3, #f0f0f0);
+    z-index: 1;
+}
+
+.timeline-vertical .timeline-item {
+    display: flex;
+    margin-bottom: 25px;
+    position: relative;
+    z-index: 2;
+}
+
+.timeline-vertical .timeline-time {
+    flex: 0 0 80px;
+    text-align: right;
+    padding-right: 20px;
+    font-weight: 600;
+    color: #333;
+    line-height: 24px;
+}
+
+.timeline-vertical .timeline-dot {
+    position: absolute;
+    left: 76px;
+    top: 0;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background-color: white;
+    border: 3px solid #0071e3;
+    margin-top: 6px;
+    z-index: 2;
+    transition: all 0.3s ease;
+}
+
+.timeline-vertical .timeline-dot:before {
+    content: "";
+    position: absolute;
+    top: -6px;
+    left: -6px;
+    width: 17px;
+    height: 17px;
+    border-radius: 50%;
+    background-color: rgba(0, 113, 227, 0.2);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.timeline-vertical .timeline-content {
+    flex: 1;
+    padding-left: 30px;
+    position: relative;
+}
+
+.timeline-vertical .timeline-card {
+    background: white;
+    border: 1px solid #e1e4e8;
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.timeline-vertical .timeline-item:hover .timeline-dot {
+    transform: scale(1.2);
+}
+
+.timeline-vertical .timeline-item:hover .timeline-dot:before {
+    opacity: 1;
+}
+
+.timeline-vertical .timeline-item:hover .timeline-card {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.timeline-vertical .timeline-title {
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: #0071e3;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.timeline-vertical .timeline-icon {
+    margin-right: 8px;
+    color: #0071e3;
+}
+
+.timeline-vertical .timeline-desc {
+    color: #555;
+    line-height: 1.5;
+    font-size: 0.95em;
+}
+
+.timeline-vertical .timeline-item.morning .timeline-dot {
+    border-color: #7cb5ec;
+}
+
+.timeline-vertical .timeline-item.afternoon .timeline-dot {
+    border-color: #f7a35c;
+}
+
+.timeline-vertical .timeline-item.evening .timeline-dot {
+    border-color: #8085e9;
+}
+
+.timeline-vertical .timeline-item.morning .timeline-title {
+    color: #7cb5ec;
+}
+
+.timeline-vertical .timeline-item.afternoon .timeline-title {
+    color: #f7a35c;
+}
+
+.timeline-vertical .timeline-item.evening .timeline-title {
+    color: #8085e9;
+}
+
+.timeline-vertical .timeline-meta {
+    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 0.85em;
+    color: #666;
+}
+
+.timeline-vertical .timeline-badge {
+    background: #f0f0f0;
+    padding: 3px 8px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+}
+
+.timeline-vertical .timeline-badge i {
+    margin-right: 4px;
+    font-size: 0.9em;
+}
+
+/* 水平时间轴样式 */
+.timeline-horizontal {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.timeline-horizontal .timeline-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+}
+
+.timeline-horizontal .timeline-title {
+    font-weight: 600;
+    color: #333;
+}
+
+.timeline-horizontal .timeline-scroll {
+    overflow-x: auto;
+    padding-bottom: 15px;
+    scrollbar-width: thin;
+    scrollbar-color: #0071e3 #f0f0f0;
+}
+
+.timeline-horizontal .timeline-scroll::-webkit-scrollbar {
+    height: 6px;
+}
+
+.timeline-horizontal .timeline-scroll::-webkit-scrollbar-track {
+    background-color: #f0f0f0;
+    border-radius: 3px;
+}
+
+.timeline-horizontal .timeline-scroll::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 113, 227, 0.5);
+    border-radius: 3px;
+}
+
+.timeline-horizontal .timeline-line {
+    position: relative;
+    height: 3px;
+    background: linear-gradient(to right, #f0f0f0, #0071e3, #f0f0f0);
+    margin: 40px 0 30px;
+}
+
+.timeline-horizontal .timeline-track {
+    position: relative;
+    display: flex;
+    min-width: max-content;
+}
+
+.timeline-horizontal .timeline-item {
+    position: relative;
+    flex: 0 0 180px;
+    margin-right: 60px;
+}
+
+.timeline-horizontal .timeline-item:last-child {
+    margin-right: 0;
+}
+
+.timeline-horizontal .timeline-dot {
+    position: absolute;
+    top: -44px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background-color: white;
+    border: 3px solid #0071e3;
+    z-index: 2;
+    transition: all 0.3s ease;
+}
+
+.timeline-horizontal .timeline-time {
+    position: absolute;
+    top: -70px;
+    width: 100%;
+    text-align: center;
+    font-weight: 600;
+    color: #333;
+}
+
+.timeline-horizontal .timeline-card {
+    background: white;
+    border: 1px solid #e1e4e8;
+    border-radius: 8px;
+    padding: 12px;
+    margin-top: 25px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    min-height: 100px;
+}
+
+.timeline-horizontal .timeline-item:hover .timeline-dot {
+    transform: translateX(-50%) scale(1.2);
+}
+
+.timeline-horizontal .timeline-item:hover .timeline-card {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.timeline-horizontal .timeline-card-title {
+    font-weight: 600;
+    font-size: 0.9em;
+    margin-bottom: 8px;
+    color: #0071e3;
+}
+
+.timeline-horizontal .timeline-card-desc {
+    color: #555;
+    font-size: 0.85em;
+    line-height: 1.4;
+}
+
+.timeline-horizontal .timeline-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.timeline-horizontal .timeline-btn {
+    background: #f0f0f0;
+    border: none;
+    border-radius: 4px;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.timeline-horizontal .timeline-btn:hover {
+    background: #e0e0e0;
+}
+
+.timeline-horizontal .timeline-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.timeline-horizontal .timeline-btn i {
+    color: #333;
+}
+
+.timeline-horizontal .timeline-item.morning .timeline-dot {
+    border-color: #7cb5ec;
+}
+
+.timeline-horizontal .timeline-item.afternoon .timeline-dot {
+    border-color: #f7a35c;
+}
+
+.timeline-horizontal .timeline-item.evening .timeline-dot {
+    border-color: #8085e9;
+}
+
+.timeline-horizontal .timeline-item.morning .timeline-card-title {
+    color: #7cb5ec;
+}
+
+.timeline-horizontal .timeline-item.afternoon .timeline-card-title {
+    color: #f7a35c;
+}
+
+.timeline-horizontal .timeline-item.evening .timeline-card-title {
+    color: #8085e9;
+}
+
+/* 日期选择器 */
+.timeline-day-selector {
+    margin-bottom: 20px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.timeline-day-btn {
+    padding: 8px 15px;
+    background: #f0f0f0;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9em;
+    color: #333;
+    transition: all 0.2s ease;
+}
+
+.timeline-day-btn:hover {
+    background: #e0e0e0;
+}
+
+.timeline-day-btn.active {
+    background: #0071e3;
+    color: white;
+}
+
+/* 移动端响应式调整 */
+@media (max-width: 768px) {
+    .timeline-vertical .timeline-line {
+        left: 60px;
+    }
+    
+    .timeline-vertical .timeline-time {
+        flex: 0 0 60px;
+        font-size: 0.9em;
+    }
+    
+    .timeline-vertical .timeline-dot {
+        left: 56px;
+    }
+    
+    .timeline-vertical .timeline-content {
+        padding-left: 20px;
+    }
+    
+    .timeline-horizontal .timeline-item {
+        flex: 0 0 150px;
+        margin-right: 40px;
+    }
+} 
