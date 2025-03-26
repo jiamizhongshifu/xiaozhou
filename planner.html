@@ -778,6 +778,95 @@
                 font-size: 16px;
             }
         }
+
+        /* 添加新的样式 */
+        #itinerary-view-container {
+            position: relative;
+            background: #fff;
+            margin: 0;
+            padding: 1rem;
+            border-bottom: 1px solid #e5e7eb;
+            transition: all 0.3s ease;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        #itinerary-view-container.active {
+            display: block !important;
+        }
+
+        /* 调整聊天消息区域的高度 */
+        .chat-messages {
+            height: calc(100vh - 280px);
+            transition: height 0.3s ease;
+        }
+
+        /* 当显示行程时，减少聊天区域高度 */
+        .chat-messages.with-itinerary {
+            height: calc(100vh - 480px);
+        }
+
+        /* 移动端优化 */
+        @media (max-width: 768px) {
+            #itinerary-view-container {
+                padding: 0.5rem;
+            }
+
+            .chat-messages.with-itinerary {
+                height: calc(100vh - 520px);
+            }
+
+            .itinerary-container {
+                margin: 0;
+                border-radius: 0;
+            }
+        }
+
+        /* 添加关闭按钮样式 */
+        .close-itinerary-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: rgba(0, 0, 0, 0.1);
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .close-itinerary-btn:hover {
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        /* 添加过渡动画 */
+        #itinerary-view-container {
+            transition: all 0.3s ease-in-out;
+            opacity: 1;
+        }
+
+        #itinerary-view-container.hidden {
+            opacity: 0;
+            height: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .view-itinerary-link button {
+            transition: all 0.2s ease;
+        }
+
+        .view-itinerary-link button:hover {
+            transform: translateY(-1px);
+        }
+
+        .view-itinerary-link button:active {
+            transform: translateY(1px);
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -801,6 +890,11 @@
                         <i class="fas fa-trash-alt"></i>
                     </button>
                 </div>
+            </div>
+            
+            <!-- 旅行计划展示区域 -->
+            <div id="itinerary-view-container" class="hidden w-full overflow-x-hidden">
+                <!-- 旅行计划将在这里动态渲染 -->
             </div>
             
             <!-- 聊天消息区域 -->
@@ -1175,6 +1269,122 @@
                     }
                 });
             }
+
+            // 添加行程展示相关的函数
+            window.showItinerary = function(itineraryHTML, scrollToView = true) {
+                const itineraryContainer = document.getElementById('itinerary-view-container');
+                const chatMessages = document.querySelector('.chat-messages');
+                
+                // 如果容器为空，则更新内容
+                if (!itineraryContainer.querySelector('.itinerary-container')) {
+                    itineraryContainer.innerHTML = `
+                        <button class="close-itinerary-btn" onclick="hideItinerary()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                        ${itineraryHTML}
+                    `;
+                }
+                
+                // 显示行程容器
+                itineraryContainer.classList.remove('hidden');
+                itineraryContainer.classList.add('active');
+                
+                // 调整聊天区域高度
+                chatMessages.classList.add('with-itinerary');
+                
+                // 初始化行程UI
+                initItineraryUI();
+                
+                // 根据参数决定是否滚动到视图
+                if (scrollToView) {
+                    itineraryContainer.scrollIntoView({ behavior: 'smooth' });
+                }
+            };
+            
+            window.hideItinerary = function() {
+                const itineraryContainer = document.getElementById('itinerary-view-container');
+                const chatMessages = document.querySelector('.chat-messages');
+                
+                // 隐藏行程容器
+                itineraryContainer.classList.add('hidden');
+                itineraryContainer.classList.remove('active');
+                
+                // 恢复聊天区域高度
+                chatMessages.classList.remove('with-itinerary');
+            };
+            
+            window.toggleItinerary = function() {
+                const itineraryContainer = document.getElementById('itinerary-view-container');
+                if (itineraryContainer.classList.contains('hidden')) {
+                    showItinerary(null, true); // 传入null因为内容已经存在
+                } else {
+                    hideItinerary();
+                }
+            };
+            
+            // 修改现有的消息处理逻辑，提取行程HTML
+            const processItineraryInMessage = function(messageElement) {
+                const itineraryContainer = messageElement.querySelector('.itinerary-container');
+                if (itineraryContainer) {
+                    // 将行程从消息中移动到专门的展示区域
+                    window.showItinerary(itineraryContainer.outerHTML);
+                    // 从消息中移除行程内容
+                    itineraryContainer.remove();
+                    // 添加查看行程的链接
+                    const viewLink = document.createElement('div');
+                    viewLink.className = 'view-itinerary-link';
+                    viewLink.innerHTML = `
+                        <button onclick="toggleItinerary()" 
+                                class="text-blue-600 hover:text-blue-800 underline flex items-center gap-2">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span class="view-itinerary-text">查看完整行程</span>
+                        </button>
+                    `;
+                    messageElement.appendChild(viewLink);
+                }
+            };
+            
+            // 监听新消息添加
+            const chatMessages = document.querySelector('.chat-messages');
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    mutation.addedNodes.forEach(function(node) {
+                        if (node.nodeType === 1 && node.classList.contains('message')) {
+                            processItineraryInMessage(node);
+                        }
+                    });
+                });
+            });
+            
+            observer.observe(chatMessages, {
+                childList: true,
+                subtree: true
+            });
+
+            // 添加全局事件监听器处理行程视图的显示状态
+            document.addEventListener('click', function(e) {
+                const target = e.target;
+                
+                // 处理查看/隐藏行程按钮点击
+                if (target.closest('.view-itinerary-link button')) {
+                    const itineraryContainer = document.getElementById('itinerary-view-container');
+                    const textSpan = target.closest('.view-itinerary-link').querySelector('.view-itinerary-text');
+                    
+                    if (itineraryContainer.classList.contains('hidden')) {
+                        textSpan.textContent = '隐藏行程';
+                    } else {
+                        textSpan.textContent = '查看完整行程';
+                    }
+                }
+                
+                // 处理关闭按钮点击
+                if (target.closest('.close-itinerary-btn')) {
+                    const viewLinks = document.querySelectorAll('.view-itinerary-link .view-itinerary-text');
+                    viewLinks.forEach(link => {
+                        link.textContent = '查看完整行程';
+                    });
+                }
+            });
         });
     </script>
 
