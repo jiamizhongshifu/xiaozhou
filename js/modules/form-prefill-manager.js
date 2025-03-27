@@ -112,6 +112,19 @@ class FormPrefillManager {
             await this.init();
         }
         
+        // 首先检查是否存在对话引导收集的数据
+        if (window.userTravelPreferences && typeof window.userTravelPreferences === 'object') {
+            console.log(`${this.logPrefix} 检测到对话引导数据:`, window.userTravelPreferences);
+            
+            // 转换对话引导数据为表单字段
+            const guidedFormData = this.convertGuidedDataToFormFields(window.userTravelPreferences);
+            
+            if (Object.keys(guidedFormData).length > 0) {
+                console.log(`${this.logPrefix} 使用对话引导收集的数据:`, guidedFormData);
+                return guidedFormData;
+            }
+        }
+        
         if (!this.conversationAnalyzer) {
             console.error(`${this.logPrefix} ConversationAnalyzer不可用，无法准备表单数据`);
             return {};  // 返回空对象而不是null，避免后续判断错误
@@ -169,9 +182,23 @@ class FormPrefillManager {
     convertToFormFields(travelInfo) {
         const formData = {};
         
-        // 目的地
-        if (travelInfo.destination) {
+        // 首先检查对话引导数据
+        if (window.userTravelPreferences && window.userTravelPreferences.destination) {
+            console.log(`${this.logPrefix} 优先使用对话引导的目的地: ${window.userTravelPreferences.destination}`);
+            formData.destination = window.userTravelPreferences.destination;
+        } 
+        // 如果没有对话引导数据，则使用提取的数据
+        else if (travelInfo.destination) {
             formData.destination = travelInfo.destination;
+        }
+        
+        // 预算优先使用对话引导数据
+        if (window.userTravelPreferences && window.userTravelPreferences.budget) {
+            console.log(`${this.logPrefix} 优先使用对话引导的预算: ${window.userTravelPreferences.budget}`);
+            formData.budget = window.userTravelPreferences.budget;
+        } else if (typeof travelInfo.budget === 'number' && travelInfo.budget > 0) {
+            // 转换预算为范围选项
+            formData.budget = this.convertBudgetToRange(travelInfo.budget);
         }
         
         // 日期
@@ -190,20 +217,64 @@ class FormPrefillManager {
             formData.travelers = travelInfo.travelers;
         }
         
-        // 预算
-        if (typeof travelInfo.budget === 'number' && travelInfo.budget > 0) {
-            // 转换预算为范围选项
-            formData.budget = this.convertBudgetToRange(travelInfo.budget);
-        }
-        
         // 兴趣爱好
-        if (Array.isArray(travelInfo.interests) && travelInfo.interests.length > 0) {
+        if (window.userTravelPreferences && window.userTravelPreferences.type) {
+            console.log(`${this.logPrefix} 从对话引导获取兴趣类型: ${window.userTravelPreferences.type}`);
+            const interestMap = {
+                '城市文化': ['culture', 'city'],
+                '自然风光': ['nature', 'sightseeing'],
+                '美食': ['food', 'culinary'],
+                '历史古迹': ['history', 'culture'],
+                '休闲度假': ['relax', 'leisure']
+            };
+            
+            if (interestMap[window.userTravelPreferences.type]) {
+                formData.interests = interestMap[window.userTravelPreferences.type];
+            }
+        } else if (Array.isArray(travelInfo.interests) && travelInfo.interests.length > 0) {
             formData.interests = travelInfo.interests;
         }
         
         // 额外需求
         if (travelInfo.requirements) {
             formData.requirements = travelInfo.requirements;
+        }
+        
+        return formData;
+    }
+    
+    /**
+     * 将引导对话数据转换为表单字段
+     * @param {Object} guidedData 引导对话数据
+     * @returns {Object} 表单字段数据
+     */
+    convertGuidedDataToFormFields(guidedData) {
+        const formData = {};
+        
+        // 目的地
+        if (guidedData.destination) {
+            formData.destination = guidedData.destination;
+        }
+        
+        // 预算
+        if (guidedData.budget) {
+            formData.budget = guidedData.budget;
+        }
+        
+        // 旅行类型转换为兴趣
+        if (guidedData.type) {
+            const interestMap = {
+                '城市文化': ['culture', 'city'],
+                '自然风光': ['nature', 'sightseeing'],
+                '美食': ['food', 'culinary'],
+                '历史古迹': ['history', 'culture'],
+                '休闲度假': ['relax', 'leisure'],
+                '综合体验': ['mixed']
+            };
+            
+            if (interestMap[guidedData.type]) {
+                formData.interests = interestMap[guidedData.type];
+            }
         }
         
         return formData;

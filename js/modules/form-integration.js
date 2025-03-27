@@ -262,6 +262,54 @@ class FormIntegration {
             console.log(`${this.logPrefix} 已增强createTravelPlanForm函数`);
         }
         
+        // 添加表单提交处理增强函数
+        function enhanceFormSubmitHandler(form, originalHandler) {
+            return function(event) {
+                // 阻止默认提交行为
+                event.preventDefault();
+                
+                // 获取表单数据
+                const formData = {};
+                const formElements = form.elements;
+                for (let i = 0; i < formElements.length; i++) {
+                    const element = formElements[i];
+                    if (element.name) {
+                        formData[element.name] = element.value;
+                    }
+                }
+                
+                // 数据一致性优先级检查
+                // 1. 首先检查对话引导数据
+                if (window.userTravelPreferences && window.userTravelPreferences.destination) {
+                    console.log("[FormIntegration] 使用对话引导收集的目的地:", window.userTravelPreferences.destination);
+                    formData.destination = window.userTravelPreferences.destination;
+                }
+                // 2. 其次检查表单预填充数据
+                else if (formData.destination === "未指定目的地" && form._prefillData && form._prefillData.destination) {
+                    // 恢复预填充的目的地数据
+                    formData.destination = form._prefillData.destination;
+                    console.log("[FormIntegration] 恢复预填充的目的地:", formData.destination);
+                }
+                
+                // 确保目的地不为空
+                if (!formData.destination || formData.destination.trim() === "") {
+                    formData.destination = "热门目的地";
+                    console.log("[FormIntegration] 目的地为空，使用默认值:", formData.destination);
+                }
+                
+                // 处理预算
+                if (window.userTravelPreferences && window.userTravelPreferences.budget) {
+                    if (formData.budget !== window.userTravelPreferences.budget) {
+                        console.log("[FormIntegration] 使用对话引导收集的预算:", window.userTravelPreferences.budget);
+                        formData.budget = window.userTravelPreferences.budget;
+                    }
+                }
+                
+                // 调用原始处理函数
+                return originalHandler.call(this, event, formData);
+            };
+        }
+        
         // 增强renderFormMessage函数
         if (this.originalRenderFormMessage) {
             const self = this;
@@ -270,8 +318,68 @@ class FormIntegration {
                 try {
                     console.log(`${self.logPrefix} 调用增强版renderFormMessage`);
                     
-                    // 先调用原始函数渲染表单
+                    // 检查是否有对话引导数据，优先使用
+                    if (window.userTravelPreferences && window.userTravelPreferences.destination && 
+                        formData && formData.content && formData.content.id === 'travel-form') {
+                        
+                        console.log(`${self.logPrefix} 检测到对话引导数据，优先应用到表单`);
+                        
+                        // 深拷贝表单，避免修改原始对象
+                        if (!formData._prefilled) {
+                            formData = JSON.parse(JSON.stringify(formData));
+                            formData._prefilled = true;
+                        }
+                        
+                        // 创建或更新预填充数据
+                        if (!formData._prefillData) {
+                            formData._prefillData = {};
+                        }
+                        
+                        // 合并对话引导数据到预填充数据
+                        formData._prefillData.destination = window.userTravelPreferences.destination;
+                        if (window.userTravelPreferences.budget) {
+                            formData._prefillData.budget = window.userTravelPreferences.budget;
+                        }
+                        
+                        // 直接设置表单字段值
+                        if (formData.content && Array.isArray(formData.content.fields)) {
+                            formData.content.fields.forEach(field => {
+                                if (field.name === 'destination') {
+                                    field.value = window.userTravelPreferences.destination;
+                                } else if (field.name === 'budget' && window.userTravelPreferences.budget) {
+                                    field.value = window.userTravelPreferences.budget;
+                                }
+                            });
+                        }
+                        
+                        console.log(`${self.logPrefix} 已应用对话引导数据到表单:`, formData._prefillData);
+                    }
+                    
+                    // 调用原始函数渲染表单
                     self.originalRenderFormMessage.call(this, container, formData);
+                    
+                    // 查找刚渲染的表单
+                    const form = container.querySelector('form');
+                    if (form) {
+                        // 保存预填充数据到表单元素，用于后续恢复
+                        if (formData._prefilled && formData._prefillData) {
+                            form._prefillData = formData._prefillData;
+                            console.log(`${self.logPrefix} 已将预填充数据保存到表单元素`);
+                        }
+                        
+                        // 如果有对话引导数据，也保存到表单元素
+                        if (window.userTravelPreferences) {
+                            form._guidedData = window.userTravelPreferences;
+                            console.log(`${self.logPrefix} 已将对话引导数据保存到表单元素:`, form._guidedData);
+                        }
+                        
+                        // 增强表单提交处理
+                        const originalSubmitHandler = form.onsubmit;
+                        if (originalSubmitHandler) {
+                            form.onsubmit = enhanceFormSubmitHandler(form, originalSubmitHandler);
+                            console.log(`${self.logPrefix} 已增强表单提交处理`);
+                        }
+                    }
                     
                     // 检查是否是预填充表单，以及是否是旅行表单
                     if (formData && formData._prefilled && formData.content && formData.content.id === 'travel-form') {
@@ -294,10 +402,19 @@ class FormIntegration {
                         // 添加预填充提示信息
                         const prefillNotice = document.createElement('div');
                         prefillNotice.className = 'prefill-notice';
-                        prefillNotice.innerHTML = `
-                            <i class="fas fa-magic"></i>
-                            <span>我们已根据您的历史对话自动填充了部分字段</span>
-                        `;
+                        
+                        // 根据数据来源提供不同提示
+                        if (window.userTravelPreferences && window.userTravelPreferences.destination) {
+                            prefillNotice.innerHTML = `
+                                <i class="fas fa-magic"></i>
+                                <span>根据您的选择，我们已为您填充了部分字段</span>
+                            `;
+                        } else {
+                            prefillNotice.innerHTML = `
+                                <i class="fas fa-magic"></i>
+                                <span>我们已根据您的历史对话自动填充了部分字段</span>
+                            `;
+                        }
                         
                         // 将提示添加到表单顶部
                         const formContainer = container.querySelector('.form-message-container');
@@ -332,7 +449,7 @@ class FormIntegration {
                     console.log(`${self.logPrefix} 表单渲染增强完成`);
                 } catch (error) {
                     console.error(`${self.logPrefix} 增强renderFormMessage时出错:`, error);
-                    // 出错时调用原始函数作为降级策略
+                    // 出错时回退到原始函数
                     self.originalRenderFormMessage.call(this, container, formData);
                 }
             };

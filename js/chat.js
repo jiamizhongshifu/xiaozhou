@@ -459,9 +459,40 @@ async function processUserMessage(text) {
     }, 5000);
     
     try {
+        // 处理对话引导流程
+        if (window.currentConversationState === 'destination_guidance') {
+            // 处于目的地引导对话中
+            hideTypingIndicator();
+            clearTimeout(responseTimeout);
+            handleDestinationGuidance(text);
+            return;
+        }
+        
         // 检查是否是旅行计划查询
-        if (isTravelPlanQuery(text)) {
-            // 隐藏输入指示器
+        const travelQueryResult = isTravelPlanQuery(text);
+        
+        if (travelQueryResult === 'needs_guidance') {
+            // 未指定目的地，开始对话引导
+            hideTypingIndicator();
+            clearTimeout(responseTimeout);
+            
+            // 标记对话状态为目的地引导
+            window.currentConversationState = 'destination_guidance';
+            window.guidanceStep = 1;
+            
+            // 开始第一步引导
+            addBotMessage(`您好！我很高兴能帮您规划旅行。为了给您提供最合适的建议，我想先了解一些您的旅行偏好。
+
+请问您对哪种类型的旅行更感兴趣？
+- 城市文化探索
+- 自然风光欣赏
+- 美食体验之旅
+- 历史古迹参观
+- 休闲度假放松`);
+            
+            return;
+        } else if (travelQueryResult === true) {
+            // 指定目的地的旅行计划查询，显示表单
             hideTypingIndicator();
             clearTimeout(responseTimeout);
             
@@ -526,11 +557,19 @@ async function processUserMessage(text) {
                     interests: ['文化历史']
                 };
 
+                // 验证参数
+                const validation = validateTravelForm(params);
+                if (validation.errors.length > 0) {
+                    console.log("参数验证提示:", validation.errors);
+                }
+                // 使用验证后的参数
+                const validatedParams = validation.formData;
+
                 // 记录请求
-                console.log('请求参数:', params);
+                console.log('请求参数:', validatedParams);
                 console.log('是否使用离线模式:', window.TravelAI.useOfflineMode);
 
-                const result = await window.TravelAI.generateItinerary(params);
+                const result = await window.TravelAI.generateItinerary(validatedParams);
                 console.log('API返回结果:', result);
                 
                 if (result && result.itinerary) {
@@ -540,7 +579,8 @@ async function processUserMessage(text) {
                 }
             } catch (error) {
                 console.error('API请求失败:', error);
-                botResponse = `抱歉，我暂时无法处理您的请求。请稍后再试。错误信息: ${error.message || '未知错误'}`;
+                // 使用友好的错误处理函数
+                botResponse = handleApiError(error, {destination: text.match(/去(.+?)(?:旅行|旅游|玩|游玩)/) ? text.match(/去(.+?)(?:旅行|旅游|玩|游玩)/)[1] : '未指定目的地'});
             }
         } else {
             console.warn('API模块未加载，使用默认响应');
@@ -564,8 +604,8 @@ async function processUserMessage(text) {
         hideTypingIndicator();
         clearTimeout(responseTimeout);
         
-        // 添加错误消息
-        const errorMessage = `抱歉，处理您的请求时出现了问题。${error.message || '请稍后再试。'}`;
+        // 使用友好的错误处理
+        const errorMessage = handleApiError(error, {});
         addBotMessage(errorMessage);
     }
 }
@@ -669,6 +709,13 @@ function addBotMessage(content, isFirstMessage = false) {
                 img.alt = content.alt || '图片';
                 img.className = 'message-image';
                 messageDiv.appendChild(img);
+            } else if (content.type === 'html' || content.type === 'HTML') {
+                // 处理HTML类型消息
+                console.log('渲染HTML消息');
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'message-content html-content';
+                contentDiv.innerHTML = content.content || '';
+                messageDiv.appendChild(contentDiv);
             } else {
                 // 尝试将对象转换为字符串
                 const contentStr = typeof content.toString === 'function' ? 
@@ -960,6 +1007,17 @@ function processFormSubmission(form, formId) {
             console.log(`表单字段 ${key}:`, value);
         }
         
+        // 检查并恢复预填充数据
+        if (form._prefillData && formId === 'travel-form') {
+            console.log('检测到预填充数据:', form._prefillData);
+            
+            // 检查目的地字段是否为"未指定目的地"且存在预填充值
+            if ((data.destination === '未指定目的地' || !data.destination) && form._prefillData.destination) {
+                data.destination = form._prefillData.destination;
+                console.log('恢复预填充的目的地:', data.destination);
+            }
+        }
+        
         // 修复表单数据
         if (formId === 'travel-form') {
             // 手动收集所有选中的checkbox
@@ -977,33 +1035,55 @@ function processFormSubmission(form, formId) {
                 data.interests = [data.interests];
             }
             
+            // 确保目的地不为空
+            if (!data.destination || data.destination.trim() === '') {
+                data.destination = '热门目的地';
+                console.log('目的地为空，使用默认值:', data.destination);
+            }
+            
             console.log('最终兴趣数组:', data.interests);
         }
         
-        // 表单验证
+        // 运行表单验证
+        const validation = validateTravelForm(data);
+        if (validation.errors.length > 0) {
+            console.log('表单验证提示:', validation.errors);
+            // 使用验证后的数据
+            Object.assign(data, validation.formData);
+        }
+        
+        // 表单基础验证（不阻止提交）
         if (formId === 'travel-form') {
             // 验证必填字段
+            let shouldProceed = true;
+            
             if (!data.destination || data.destination.trim() === '') {
                 alert('请填写目的地');
-                return false;
+                shouldProceed = false;
             }
             
             if (!data.startDate) {
                 alert('请选择出发日期');
-                return false;
+                shouldProceed = false;
             }
             
             if (!data.endDate) {
                 alert('请选择结束日期');
-                return false;
+                shouldProceed = false;
             }
             
             // 验证日期范围
-            const startDate = new Date(data.startDate);
-            const endDate = new Date(data.endDate);
+            if (data.startDate && data.endDate) {
+                const startDate = new Date(data.startDate);
+                const endDate = new Date(data.endDate);
+                
+                if (endDate < startDate) {
+                    alert('结束日期不能早于开始日期');
+                    shouldProceed = false;
+                }
+            }
             
-            if (endDate < startDate) {
-                alert('结束日期不能早于开始日期');
+            if (!shouldProceed) {
                 return false;
             }
         }
@@ -3784,6 +3864,19 @@ function createTravelPlanForm() {
     console.log('创建旅行计划表单');
     
     try {
+        // 确保MessageType定义存在
+        const messageTypes = {
+            TEXT: 'text',
+            FORM: 'form',
+            ITINERARY: 'itinerary',
+            CARD: 'card',
+            GALLERY: 'gallery'
+        };
+        
+        // 使用局部变量，避免全局变量访问问题
+        const FORM_TYPE = typeof MessageType !== 'undefined' ? MessageType.FORM : messageTypes.FORM;
+        const TEXT_TYPE = typeof MessageType !== 'undefined' ? MessageType.TEXT : messageTypes.TEXT;
+        
         // 获取当前日期和一周后的日期（作为默认值）
         const today = new Date();
         const nextWeek = new Date(today);
@@ -3802,7 +3895,7 @@ function createTravelPlanForm() {
         
         // 返回表单配置
         const formData = {
-            type: MessageType.FORM,
+            type: FORM_TYPE,
             content: {
                 id: 'travel-form',
                 title: '旅行计划定制表单',
@@ -3847,9 +3940,9 @@ function createTravelPlanForm() {
                         label: '预算范围',
                         type: 'select',
                         options: [
-                            { value: '经济实惠', label: '经济实惠 (¥2000-5000/人)' },
-                            { value: '中等消费', label: '中等消费 (¥5000-10000/人)' },
-                            { value: '豪华享受', label: '豪华享受 (¥10000以上/人)' }
+                            { value: 'budget', label: '经济实惠 (¥2000-5000/人)' },
+                            { value: 'moderate', label: '中等消费 (¥5000-10000/人)' },
+                            { value: 'luxury', label: '豪华享受 (¥10000以上/人)' }
                         ],
                         required: true
                     },
@@ -3883,7 +3976,7 @@ function createTravelPlanForm() {
         console.error('创建表单出错:', error);
         // 返回一个错误消息
         return {
-            type: MessageType.TEXT,
+            type: 'text',
             content: '抱歉，表单创建失败。请直接告诉我您的旅行需求，例如"我想去日本旅行，喜欢美食和文化历史"。'
         };
     }
@@ -3944,6 +4037,33 @@ function isTravelPlanQuery(message) {
         pattern.test(message)
     );
     
+    // 目的地提取模式
+    const destinationPatterns = [
+        /去(.+?)(?:旅行|旅游|玩|游玩)/,
+        /计划(?:去|前往|到)?([^，。？！,.?!]{2,15})/,
+        /想(?:去|前往|到)(.+?)(?:玩|旅游|旅行)/
+    ];
+    
+    // 检查是否能提取出具体目的地
+    let hasExplicitDestination = false;
+    for (const pattern of destinationPatterns) {
+        const match = message.match(pattern);
+        if (match && match[1] && match[1].trim().length > 1) {
+            // 确认提取的目的地不仅仅是"哪里"、"哪儿"等疑问词
+            const extractedDest = match[1].trim();
+            if (!['哪里', '哪儿', '什么地方', '何处', '哪个'].includes(extractedDest)) {
+                hasExplicitDestination = true;
+                break;
+            }
+        }
+    }
+    
+    // 如果是旅行计划查询但没有明确目的地，标记为需要引导
+    if ((hasTravelKeyword && !hasDestinationKeyword) || 
+        (matchesTravelPattern && !hasExplicitDestination)) {
+        return 'needs_guidance';
+    }
+    
     // 如果同时满足关键词和目的地，或者匹配了旅行计划模式，则认为是旅行计划查询
     return (hasTravelKeyword && hasDestinationKeyword) || matchesTravelPattern;
 }
@@ -3964,9 +4084,40 @@ async function processUserMessage(text) {
     }, 5000);
     
     try {
+        // 处理对话引导流程
+        if (window.currentConversationState === 'destination_guidance') {
+            // 处于目的地引导对话中
+            hideTypingIndicator();
+            clearTimeout(responseTimeout);
+            handleDestinationGuidance(text);
+            return;
+        }
+        
         // 检查是否是旅行计划查询
-        if (isTravelPlanQuery(text)) {
-            // 隐藏输入指示器
+        const travelQueryResult = isTravelPlanQuery(text);
+        
+        if (travelQueryResult === 'needs_guidance') {
+            // 未指定目的地，开始对话引导
+            hideTypingIndicator();
+            clearTimeout(responseTimeout);
+            
+            // 标记对话状态为目的地引导
+            window.currentConversationState = 'destination_guidance';
+            window.guidanceStep = 1;
+            
+            // 开始第一步引导
+            addBotMessage(`您好！我很高兴能帮您规划旅行。为了给您提供最合适的建议，我想先了解一些您的旅行偏好。
+
+请问您对哪种类型的旅行更感兴趣？
+- 城市文化探索
+- 自然风光欣赏
+- 美食体验之旅
+- 历史古迹参观
+- 休闲度假放松`);
+            
+            return;
+        } else if (travelQueryResult === true) {
+            // 指定目的地的旅行计划查询，显示表单
             hideTypingIndicator();
             clearTimeout(responseTimeout);
             
@@ -4031,11 +4182,19 @@ async function processUserMessage(text) {
                     interests: ['文化历史']
                 };
 
+                // 验证参数
+                const validation = validateTravelForm(params);
+                if (validation.errors.length > 0) {
+                    console.log("参数验证提示:", validation.errors);
+                }
+                // 使用验证后的参数
+                const validatedParams = validation.formData;
+
                 // 记录请求
-                console.log('请求参数:', params);
+                console.log('请求参数:', validatedParams);
                 console.log('是否使用离线模式:', window.TravelAI.useOfflineMode);
 
-                const result = await window.TravelAI.generateItinerary(params);
+                const result = await window.TravelAI.generateItinerary(validatedParams);
                 console.log('API返回结果:', result);
                 
                 if (result && result.itinerary) {
@@ -4045,7 +4204,8 @@ async function processUserMessage(text) {
                 }
             } catch (error) {
                 console.error('API请求失败:', error);
-                botResponse = `抱歉，我暂时无法处理您的请求。请稍后再试。错误信息: ${error.message || '未知错误'}`;
+                // 使用友好的错误处理函数
+                botResponse = handleApiError(error, {destination: text.match(/去(.+?)(?:旅行|旅游|玩|游玩)/) ? text.match(/去(.+?)(?:旅行|旅游|玩|游玩)/)[1] : '未指定目的地'});
             }
         } else {
             console.warn('API模块未加载，使用默认响应');
@@ -4069,8 +4229,8 @@ async function processUserMessage(text) {
         hideTypingIndicator();
         clearTimeout(responseTimeout);
         
-        // 添加错误消息
-        const errorMessage = `抱歉，处理您的请求时出现了问题。${error.message || '请稍后再试。'}`;
+        // 使用友好的错误处理
+        const errorMessage = handleApiError(error, {});
         addBotMessage(errorMessage);
     }
 }
@@ -4966,5 +5126,817 @@ function parseDayContent(dayContent, dayIndex) {
 
     html += `</div></div>`;
     return html;
+}
+
+// 增加表单验证函数
+function validateTravelForm(formData) {
+    const errors = [];
+    
+    // 验证目的地
+    if (!formData.destination || formData.destination === "未指定目的地") {
+        errors.push("请指定一个具体的旅行目的地");
+        // 不阻止提交，但标记为需要注意
+        formData._requireAttention = true;
+    }
+    
+    // 验证行程天数
+    if (!formData.duration || isNaN(parseInt(formData.duration))) {
+        formData.duration = 3; // 使用默认值
+        errors.push("使用默认行程天数: 3天");
+    }
+    
+    // 验证旅行人数
+    if (!formData.travelers || isNaN(parseInt(formData.travelers))) {
+        formData.travelers = 1; // 使用默认值
+        errors.push("使用默认旅行人数: 1人");
+    }
+    
+    return {
+        valid: errors.length === 0,
+        errors: errors,
+        formData: formData
+    };
+}
+
+// 添加友好的错误处理函数
+function handleApiError(error, params) {
+    let friendlyMessage;
+    
+    if (!params.destination || params.destination === "未指定目的地") {
+        friendlyMessage = `
+# 需要更多信息
+
+为了给您提供最好的旅行规划，我需要知道您想去哪里。请选择一个具体的目的地，或者告诉我您感兴趣的旅行类型，我可以为您推荐适合的地点。
+
+## 热门目的地推荐
+- **北京** - 历史文化之旅
+- **杭州** - 山水风光游
+- **三亚** - 海滨度假
+- **成都** - 美食文化体验
+        `;
+    } else {
+        friendlyMessage = `
+# 生成行程时遇到问题
+
+很抱歉，在处理您的请求时遇到了技术问题。请稍后再试。
+
+错误信息: ${error.message}
+        `;
+    }
+    
+    return friendlyMessage;
+}
+
+/**
+ * 处理目的地引导对话
+ * @param {string} userResponse - 用户回复
+ */
+function handleDestinationGuidance(userResponse) {
+    hideTypingIndicator();
+    
+    // 基于用户回复的关键词判断处于哪个引导阶段并推进对话
+    const lowerResponse = userResponse.toLowerCase();
+    
+    if (!window.guidanceStep) {
+        window.guidanceStep = 1;
+    }
+    
+    // 如果未初始化偏好对象，则创建
+    if (!window.userTravelPreferences) {
+        window.userTravelPreferences = {};
+    }
+    
+    switch(window.guidanceStep) {
+        case 1: // 处理旅行类型偏好
+            let travelType = "";
+            if (lowerResponse.includes("城市") || lowerResponse.includes("文化")) {
+                travelType = "城市文化";
+            } else if (lowerResponse.includes("自然") || lowerResponse.includes("风光")) {
+                travelType = "自然风光";
+            } else if (lowerResponse.includes("美食")) {
+                travelType = "美食";
+            } else if (lowerResponse.includes("历史") || lowerResponse.includes("古迹")) {
+                travelType = "历史古迹";
+            } else if (lowerResponse.includes("休闲") || lowerResponse.includes("度假")) {
+                travelType = "休闲度假";
+            } else {
+                travelType = "综合体验";
+            }
+            
+            // 存储用户偏好
+            window.userTravelPreferences.type = travelType;
+            console.log("保存用户旅行类型偏好:", travelType);
+            
+            // 进入下一步
+            window.guidanceStep = 2;
+            
+            // 提出第二个问题
+            addBotMessage(`${travelType}是个很棒的选择！那么您的旅行预算大概是多少呢？
+
+- 经济实惠型 (尽量节省开支)
+- 中等消费型 (性价比优先)
+- 高端享受型 (注重品质体验)`);
+            break;
+            
+        case 2: // 处理预算问题
+            let budget = "";
+            if (lowerResponse.includes("经济") || lowerResponse.includes("实惠") || lowerResponse.includes("节省")) {
+                budget = "budget";
+            } else if (lowerResponse.includes("中等") || lowerResponse.includes("性价比")) {
+                budget = "moderate";
+            } else if (lowerResponse.includes("高端") || lowerResponse.includes("享受") || lowerResponse.includes("品质")) {
+                budget = "luxury";
+            } else {
+                budget = "moderate";
+            }
+            
+            // 存储预算偏好
+            window.userTravelPreferences.budget = budget;
+            console.log("保存用户预算偏好:", budget);
+            
+            // 进入下一步
+            window.guidanceStep = 3;
+            
+            // 根据用户偏好推荐目的地
+            const destinations = getRecommendedDestinations(window.userTravelPreferences);
+            
+            // 预算的显示文本
+            const budgetText = {
+                "budget": "经济实惠",
+                "moderate": "中等消费",
+                "luxury": "高端享受"
+            };
+            
+            addBotMessage(`非常感谢您的信息！根据您喜欢的${window.userTravelPreferences.type}旅行和${budgetText[budget] || "中等消费"}的预算，我向您推荐以下目的地：
+
+1. **${destinations[0].name}** - ${destinations[0].description}
+2. **${destinations[1].name}** - ${destinations[1].description}
+3. **${destinations[2].name}** - ${destinations[2].description}
+
+这些目的地中有您感兴趣的吗？或者您有其他想去的地方？`);
+            break;
+            
+        case 3: // 处理目的地选择
+            let selectedDestination = "";
+            
+            // 检查是否从推荐中选择
+            const recommendedDests = getRecommendedDestinations(window.userTravelPreferences);
+            for (let dest of recommendedDests) {
+                if (lowerResponse.includes(dest.name.toLowerCase())) {
+                    selectedDestination = dest.name;
+                    break;
+                }
+            }
+            
+            // 如果用户指定了其他目的地
+            if (!selectedDestination) {
+                // 尝试提取用户回复中的地名
+                const destMatches = userResponse.match(/想去(.+)|去(.+)|(.+)感兴趣/);
+                if (destMatches) {
+                    for (let i = 1; i < destMatches.length; i++) {
+                        if (destMatches[i]) {
+                            selectedDestination = destMatches[i].trim();
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            // 如果仍未找到目的地，将整个回复作为目的地（去除标点符号）
+            if (!selectedDestination) {
+                selectedDestination = userResponse.replace(/[,.?!，。？！]/g, '').trim();
+            }
+            
+            // 存储选择的目的地
+            window.userTravelPreferences.destination = selectedDestination;
+            console.log("保存用户目的地选择:", selectedDestination);
+            
+            // 清除对话引导状态，但保留偏好数据供表单使用
+            window.currentConversationState = 'guidance_completed';
+            window.guidanceStep = 'completed';
+            
+            // 显示确认信息并创建表单
+            addBotMessage(`太棒了！${selectedDestination}是个很好的选择。为了给您制定一个完美的${selectedDestination}行程，请填写以下表单以提供更多细节：`);
+            
+            // 延迟显示表单，让用户先看到上面的消息
+            setTimeout(() => {
+                try {
+                    console.log("准备显示旅行表单，目的地:", selectedDestination);
+                    
+                    // 准备预填充数据
+                    const prefillData = {
+                        destination: selectedDestination,
+                        budget: window.userTravelPreferences.budget
+                    };
+                    
+                    // 尝试使用简单的表单渲染方法
+                    if (typeof displayTravelForm === 'function') {
+                        console.log("使用displayTravelForm显示表单");
+                        displayTravelForm(prefillData);
+                        return;
+                    }
+                    
+                    // 创建表单 - 处理可能的Promise返回值
+                    const formResult = createTravelPlanForm();
+                    
+                    if (formResult instanceof Promise) {
+                        console.log("检测到createTravelPlanForm返回Promise，等待解析");
+                        
+                        // 设置超时处理
+                        let timeoutId = setTimeout(() => {
+                            console.error("表单创建超时，使用降级方案");
+                            addBotMessage(`抱歉，表单加载时间过长。请直接告诉我您计划去${selectedDestination}旅行的时间和人数？`);
+                        }, 5000);
+                        
+                        // 处理Promise
+                        formResult.then(formData => {
+                            clearTimeout(timeoutId);
+                            
+                            if (!formData) {
+                                console.error("表单数据为空，使用降级方案");
+                                addBotMessage(`抱歉，表单创建失败。请告诉我您计划何时去${selectedDestination}旅行？`);
+                                return;
+                            }
+                            
+                            console.log("表单Promise解析成功，类型:", typeof formData, "内容:", formData);
+                            
+                            // 为表单添加预填充标记和数据
+                            formData._prefilled = true;
+                            formData._prefillData = prefillData;
+                            
+                            console.log("添加预填充表单，数据:", formData._prefillData);
+                            
+                            // 使用消息渲染器添加表单
+                            try {
+                                addBotMessage(formData);
+                            } catch (renderError) {
+                                console.error("渲染表单时出错:", renderError);
+                                // 如果渲染失败，尝试创建基本表单
+                                createBasicTravelForm(selectedDestination, prefillData);
+                            }
+                        }).catch(error => {
+                            clearTimeout(timeoutId);
+                            console.error("处理表单Promise时出错:", error);
+                            // 表单加载失败时显示降级消息
+                            addBotMessage(`非常抱歉，在准备表单时遇到了问题。请告诉我您打算什么时候去${selectedDestination}，以及有多少人一起旅行？`);
+                        });
+                    } else {
+                        // 直接处理表单对象
+                        console.log("createTravelPlanForm返回直接结果，类型:", typeof formResult);
+                        
+                        if (formResult) {
+                            // 为表单添加预填充标记和数据
+                            formResult._prefilled = true;
+                            formResult._prefillData = prefillData;
+                            
+                            console.log("添加预填充表单，数据:", formResult._prefillData);
+                            
+                            try {
+                                // 使用消息渲染器添加表单
+                                addBotMessage(formResult);
+                            } catch (renderError) {
+                                console.error("渲染表单时出错:", renderError);
+                                // 如果渲染失败，尝试创建基本表单
+                                createBasicTravelForm(selectedDestination, prefillData);
+                            }
+                        } else {
+                            console.error("表单创建失败，返回值:", formResult);
+                            // 表单创建失败时的降级处理
+                            addBotMessage(`对不起，在准备表单时遇到了问题。请您直接告诉我更多关于${selectedDestination}旅行的细节，比如计划几天、什么时候出发、有什么特别的要求等。`);
+                        }
+                    }
+                } catch (error) {
+                    console.error('创建表单时出错:', error);
+                    // 出错时的降级处理
+                    addBotMessage(`非常抱歉，在准备表单时遇到了问题。不过不用担心，我已经知道您想去${selectedDestination}了。请告诉我您打算旅行几天？`);
+                }
+            }, 1000);
+            break;
+    }
+}
+
+/**
+ * 根据用户偏好推荐目的地
+ * @param {Object} preferences - 用户旅行偏好
+ * @returns {Array} - 推荐的目的地数组
+ */
+function getRecommendedDestinations(preferences) {
+    const allDestinations = {
+        "城市文化": [
+            {name: "东京", description: "现代与传统交融的城市体验，购物、美食和文化应有尽有"},
+            {name: "巴黎", description: "艺术与浪漫的代名词，埃菲尔铁塔、卢浮宫和香榭丽舍大街等景点"},
+            {name: "上海", description: "中国现代化都市代表，东方明珠、外滩、城隍庙等景点丰富多样"}
+        ],
+        "自然风光": [
+            {name: "瑞士", description: "阿尔卑斯山脉的壮丽景色，湖泊和小镇风光如画"},
+            {name: "张家界", description: "奇峰异石的自然奇观，《阿凡达》取景地，山水风光壮丽"},
+            {name: "黄石公园", description: "美国最著名的国家公园，间歇泉和野生动物保护区"}
+        ],
+        "美食": [
+            {name: "成都", description: "中国最著名的美食城市之一，川菜和火锅的天堂"},
+            {name: "意大利", description: "披萨、意面和提拉米苏的故乡，各地区有独特美食传统"},
+            {name: "曼谷", description: "泰国美食中心，街头小吃和精致餐厅共存"}
+        ],
+        "历史古迹": [
+            {name: "北京", description: "中国历史文化名城，长城、故宫和天坛等古迹"},
+            {name: "罗马", description: "古罗马文明的中心，斗兽场和梵蒂冈等世界遗产"},
+            {name: "西安", description: "古丝绸之路起点，兵马俑、古城墙等历史遗迹丰富"}
+        ],
+        "休闲度假": [
+            {name: "三亚", description: "中国著名的热带海滨城市，阳光、沙滩和丰富的度假设施"},
+            {name: "巴厘岛", description: "结合海滩度假和文化体验的理想目的地"},
+            {name: "马尔代夫", description: "蓝天白沙和水上屋，完美的热带岛屿度假体验"}
+        ],
+        "综合体验": [
+            {name: "日本", description: "从现代都市到传统寺庙，丰富多样的旅行体验"},
+            {name: "澳大利亚", description: "城市、海滩和内陆自然风光的完美结合"},
+            {name: "云南", description: "民族文化、自然风光和历史古迹的多元旅游目的地"}
+        ]
+    };
+    
+    // 根据用户偏好类型选择目的地
+    let recommendedType = preferences.type || "综合体验";
+    
+    // 如果用户选择的类型不在预设列表中，使用综合体验
+    if (!allDestinations[recommendedType]) {
+        recommendedType = "综合体验";
+    }
+    
+    return allDestinations[recommendedType];
+}
+
+function showTravelForm(reason, prefilledData) {
+    // 标记对话状态为表单阶段
+    window.currentConversationState = 'form_shown';
+    
+    // 清除之前的对话引导状态
+    if (!prefilledData || !prefilledData.keepGuidanceData) {
+        console.log("清除之前的对话引导状态");
+        window.guidanceStep = null;
+        // 保留userTravelPreferences以便表单填充使用
+    }
+    
+    try {
+        console.log("开始创建旅行表单，原因:", reason, "预填充数据:", prefilledData);
+        
+        // 使用现有的createTravelPlanForm函数
+        const formTemplate = createTravelPlanForm();
+        
+        // 生成表单消息
+        const formMessage = {
+            type: 'form',
+            sender: 'assistant',
+            timestamp: new Date().toISOString(),
+            content: formTemplate
+        };
+        
+        // 如果有预填充数据，标记表单
+        if (prefilledData) {
+            formMessage._prefilled = true;
+            formMessage._prefillData = prefilledData;
+            
+            if (prefilledData.interests && Array.isArray(prefilledData.interests)) {
+                formMessage._prefillInterests = prefilledData.interests;
+            }
+            
+            console.log("提供的预填充数据:", prefilledData);
+        }
+        
+        // 根据原因添加说明文字
+        let assistantMessage = "";
+        switch (reason) {
+            case 'user_request':
+                assistantMessage = "这是我们的旅行计划表单，请填写您的旅行偏好:";
+                break;
+            case 'destination_selected':
+                assistantMessage = `很好的选择！请填写更多关于您的${prefilledData.destination || '旅行'}偏好:`;
+                break;
+            case 'invalid_form':
+                assistantMessage = "表单似乎有些问题，请再试一次:";
+                break;
+            default:
+                assistantMessage = "为了更好地了解您的旅行需求，请填写以下表单:";
+        }
+        
+        // 先添加助手的文字消息
+        addMessage('assistant', assistantMessage);
+        
+        // 然后添加表单消息
+        messages.push(formMessage);
+        renderMessage(formMessage);
+        
+        // 隐藏输入框，显示表单提示
+        toggleInputVisibility(false);
+        
+        // 检查表单活动消息元素是否存在
+        const formActiveMessage = document.getElementById('form-active-message');
+        if (formActiveMessage) {
+            formActiveMessage.style.display = 'block';
+        } else {
+            console.warn("未找到表单活动消息元素");
+        }
+    } catch (error) {
+        console.error("创建表单时出错:", error);
+        // 错误处理：使用文本回退
+        addMessage('assistant', `非常抱歉，在准备表单时遇到了问题。请直接告诉我您对${prefilledData?.destination || '旅行'}的更多需求，比如出行时间、人数和特殊要求等。`);
+    }
+}
+
+/**
+ * 创建并显示基本旅行表单（作为降级方案）
+ * @param {string} destination - 目的地
+ * @param {Object} prefillData - 预填充数据
+ */
+function createBasicTravelForm(destination, prefillData) {
+    console.log("创建基本旅行表单作为降级方案");
+    
+    try {
+        // 获取当前日期和一周后的日期（作为默认值）
+        const today = new Date();
+        const nextWeek = new Date(today);
+        nextWeek.setDate(today.getDate() + 7);
+        
+        // 格式化日期为 YYYY-MM-DD
+        const formatDate = (date) => {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+        
+        const todayFormatted = formatDate(today);
+        const nextWeekFormatted = formatDate(nextWeek);
+        
+        // 构建简单的HTML表单
+        const formHTML = `
+            <div class="basic-travel-form">
+                <h3>旅行计划定制</h3>
+                <p>请填写以下信息，我们将为您定制${destination || ''}的个性化旅行计划</p>
+                <form id="basic-travel-form" class="simple-form">
+                    <div class="form-group">
+                        <label for="destination">目的地</label>
+                        <input type="text" id="destination" name="destination" value="${prefillData?.destination || ''}" placeholder="例如：日本、巴黎、峇里岛" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="startDate">出发日期</label>
+                        <input type="date" id="startDate" name="startDate" value="${todayFormatted}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="endDate">结束日期</label>
+                        <input type="date" id="endDate" name="endDate" value="${nextWeekFormatted}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="travelers">旅行人数</label>
+                        <select id="travelers" name="travelers" required>
+                            <option value="1">1人</option>
+                            <option value="2" selected>2人</option>
+                            <option value="3">3人</option>
+                            <option value="4">4人</option>
+                            <option value="5+">5人及以上</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="budget">预算范围</label>
+                        <select id="budget" name="budget" required>
+                            <option value="budget" ${prefillData?.budget === 'budget' ? 'selected' : ''}>经济实惠 (¥2000-5000/人)</option>
+                            <option value="moderate" ${prefillData?.budget === 'moderate' ? 'selected' : ''}>中等消费 (¥5000-10000/人)</option>
+                            <option value="luxury" ${prefillData?.budget === 'luxury' ? 'selected' : ''}>豪华享受 (¥10000以上/人)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>旅行兴趣（可多选）</label>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" name="interests" value="美食"> 美食</label>
+                            <label><input type="checkbox" name="interests" value="文化历史"> 文化历史</label>
+                            <label><input type="checkbox" name="interests" value="自然风光"> 自然风光</label>
+                            <label><input type="checkbox" name="interests" value="购物"> 购物</label>
+                            <label><input type="checkbox" name="interests" value="冒险活动"> 冒险活动</label>
+                            <label><input type="checkbox" name="interests" value="度假放松"> 度假放松</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="additional">其他要求或备注</label>
+                        <textarea id="additional" name="additional" placeholder="有什么特别的要求或偏好，请在这里告诉我们..."></textarea>
+                    </div>
+                    <button type="submit" class="submit-btn">生成旅行计划</button>
+                </form>
+            </div>
+        `;
+        
+        // 创建样式
+        if (!document.getElementById('basic-form-styles')) {
+            const style = document.createElement('style');
+            style.id = 'basic-form-styles';
+            style.textContent = `
+                .basic-travel-form {
+                    background-color: #fff;
+                    border-radius: 12px;
+                    padding: 20px;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                }
+                .basic-travel-form h3 {
+                    margin-top: 0;
+                    color: #333;
+                }
+                .simple-form .form-group {
+                    margin-bottom: 15px;
+                }
+                .simple-form label {
+                    display: block;
+                    margin-bottom: 5px;
+                    font-weight: 500;
+                }
+                .simple-form input[type="text"],
+                .simple-form input[type="date"],
+                .simple-form select,
+                .simple-form textarea {
+                    width: 100%;
+                    padding: 10px;
+                    border: 1px solid #ddd;
+                    border-radius: 6px;
+                    font-size: 14px;
+                }
+                .simple-form textarea {
+                    height: 80px;
+                    resize: vertical;
+                }
+                .checkbox-group {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 10px;
+                }
+                .checkbox-group label {
+                    display: flex;
+                    align-items: center;
+                    font-weight: normal;
+                }
+                .checkbox-group input {
+                    margin-right: 5px;
+                }
+                .submit-btn {
+                    background-color: #0071e3;
+                    color: white;
+                    border: none;
+                    border-radius: 6px;
+                    padding: 10px 20px;
+                    font-size: 16px;
+                    cursor: pointer;
+                    transition: background-color 0.2s;
+                }
+                .submit-btn:hover {
+                    background-color: #0051a2;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
+        // 使用文本消息显示自定义表单HTML
+        const formMessage = {
+            type: 'html',
+            content: formHTML
+        };
+        
+        addBotMessage(formMessage);
+        
+        // 等待DOM更新后添加提交事件处理
+        setTimeout(() => {
+            const form = document.getElementById('basic-travel-form');
+            if (form) {
+                form.addEventListener('submit', function(event) {
+                    event.preventDefault();
+                    
+                    // 收集表单数据
+                    const formData = new FormData(form);
+                    const data = {};
+                    for (const [key, value] of formData.entries()) {
+                        if (key === 'interests') {
+                            if (!data[key]) data[key] = [];
+                            data[key].push(value);
+                        } else {
+                            data[key] = value;
+                        }
+                    }
+                    
+                    console.log("基本表单提交，数据:", data);
+                    
+                    // 隐藏表单
+                    form.parentNode.style.display = 'none';
+                    
+                    // 显示提交确认
+                    addBotMessage(`感谢您提交旅行计划信息！我正在为您的${data.destination || destination}之旅制定个性化行程...`);
+                    
+                    // 触发行程生成
+                    setTimeout(() => {
+                        processTravelPlanRequest(data);
+                    }, 1000);
+                });
+            }
+        }, 100);
+        
+    } catch (error) {
+        console.error("创建基本表单出错:", error);
+        // 最终降级：提示用户直接提供信息
+        addBotMessage(`抱歉，我们遇到了技术问题。请直接告诉我您的${destination || '旅行'}计划，包括时间、人数和特别需求。`);
+    }
+}
+
+/**
+ * 显示旅行表单（集成方法）
+ * @param {Object} prefillData - 预填充数据
+ */
+function displayTravelForm(prefillData) {
+    console.log("使用displayTravelForm方法显示表单，预填充数据:", prefillData);
+    
+    try {
+        // 检查FormIntegration是否可用
+        if (window.formIntegration && typeof window.formIntegration.showForm === 'function') {
+            console.log("使用FormIntegration模块显示表单");
+            window.formIntegration.showForm('travel-form', prefillData);
+            return;
+        }
+        
+        // 尝试获取表单
+        const formResult = createTravelPlanForm();
+        
+        // 处理Promise结果
+        if (formResult instanceof Promise) {
+            formResult.then(formData => {
+                if (formData) {
+                    formData._prefilled = true;
+                    formData._prefillData = prefillData;
+                    addBotMessage(formData);
+                } else {
+                    // 降级到基本表单
+                    createBasicTravelForm(prefillData.destination, prefillData);
+                }
+            }).catch(error => {
+                console.error("获取表单失败:", error);
+                createBasicTravelForm(prefillData.destination, prefillData);
+            });
+        } else if (formResult) {
+            // 直接使用返回的表单
+            formResult._prefilled = true;
+            formResult._prefillData = prefillData;
+            addBotMessage(formResult);
+        } else {
+            // 降级到基本表单
+            createBasicTravelForm(prefillData.destination, prefillData);
+        }
+    } catch (error) {
+        console.error("显示表单出错:", error);
+        createBasicTravelForm(prefillData.destination, prefillData);
+    }
+}
+
+/**
+ * 处理旅行计划请求（基本表单提交处理）
+ * @param {Object} formData - 表单数据
+ */
+function processTravelPlanRequest(formData) {
+    console.log("处理旅行计划请求:", formData);
+    
+    try {
+        // 显示加载指示器
+        showTypingIndicator();
+        
+        // 构建提示信息
+        let promptText = `请为我计划一次去${formData.destination || '热门目的地'}的旅行。`;
+        
+        // 添加日期信息
+        if (formData.startDate && formData.endDate) {
+            // 计算旅行天数
+            const start = new Date(formData.startDate);
+            const end = new Date(formData.endDate);
+            const daysDiff = Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1;
+            
+            promptText += `\n出发日期: ${formData.startDate}`;
+            promptText += `\n结束日期: ${formData.endDate}`;
+            promptText += `\n旅行天数: ${daysDiff}天`;
+        }
+        
+        // 添加旅行人数
+        if (formData.travelers) {
+            promptText += `\n旅行人数: ${formData.travelers}`;
+        }
+        
+        // 添加预算信息
+        if (formData.budget) {
+            let budgetText = "";
+            switch(formData.budget) {
+                case 'budget':
+                    budgetText = "经济实惠型 (¥2000-5000/人)";
+                    break;
+                case 'moderate':
+                    budgetText = "中等消费型 (¥5000-10000/人)";
+                    break;
+                case 'luxury':
+                    budgetText = "高端享受型 (¥10000以上/人)";
+                    break;
+                default:
+                    budgetText = formData.budget;
+            }
+            promptText += `\n预算: ${budgetText}`;
+        }
+        
+        // 添加兴趣爱好
+        if (formData.interests && formData.interests.length > 0) {
+            const interestsText = Array.isArray(formData.interests) 
+                ? formData.interests.join(', ') 
+                : formData.interests;
+            promptText += `\n兴趣爱好: ${interestsText}`;
+        }
+        
+        // 添加额外要求
+        if (formData.additional) {
+            promptText += `\n额外要求: ${formData.additional}`;
+        }
+        
+        // 添加用户请求
+        addMessage('user', promptText);
+        
+        // 模拟API调用延迟
+        setTimeout(() => {
+            // 隐藏加载指示器
+            hideTypingIndicator();
+            
+            // 判断是使用本地模式还是调用API
+            if (window.chatOptions && window.chatOptions.useLocalMode) {
+                // 本地模式：生成简单响应
+                generateLocalTravelPlan(formData);
+            } else {
+                // API模式：尝试调用API
+                if (typeof callTravelAPI === 'function') {
+                    callTravelAPI(promptText, formData)
+                        .catch(error => {
+                            console.error("API调用失败，回退到本地模式:", error);
+                            generateLocalTravelPlan(formData);
+                        });
+                } else {
+                    console.warn("API调用函数不可用，使用本地模式");
+                    generateLocalTravelPlan(formData);
+                }
+            }
+        }, 2000);
+    } catch (error) {
+        console.error("处理旅行计划请求时出错:", error);
+        hideTypingIndicator();
+        addBotMessage(`抱歉，在处理您的旅行计划请求时遇到了问题。请再次尝试或提供更详细的信息。`);
+    }
+}
+
+/**
+ * 生成本地旅行计划（无需API调用）
+ * @param {Object} formData - 表单数据
+ */
+function generateLocalTravelPlan(formData) {
+    const destination = formData.destination || '热门目的地';
+    
+    // 计算旅行天数
+    let days = 3; // 默认3天
+    if (formData.startDate && formData.endDate) {
+        const start = new Date(formData.startDate);
+        const end = new Date(formData.endDate);
+        days = Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1;
+    }
+    
+    // 生成行程天数文本
+    let daysText = '';
+    for (let i = 1; i <= Math.min(days, 5); i++) {
+        daysText += `\n\n## 第${i}天行程\n`;
+        daysText += `- 上午：参观${destination}著名景点\n`;
+        daysText += `- 下午：自由活动或购物时间\n`;
+        daysText += `- 晚上：品尝当地特色美食`;
+    }
+    
+    // 构建旅行计划响应
+    const response = `以下是您的${destination}旅行计划：
+
+## 行程概述
+- 目的地：${destination}
+- 旅行天数：${days}天
+- 人数：${formData.travelers || '未指定'}人
+- 预算：${formData.budget || '未指定'}
+
+${daysText}
+
+## 住宿推荐
+- 根据您的预算，建议选择舒适度适中的酒店或民宿
+- 建议预订靠近市中心或主要景点的住宿
+
+## 美食推荐
+- 品尝${destination}当地特色美食
+- 尝试著名餐厅和街边小吃
+
+## 旅行小贴士
+- 提前了解${destination}的天气情况
+- 准备舒适的鞋子和衣物
+- 记得购买旅行保险
+- 制作一份必备物品清单
+
+希望您在${destination}度过愉快的时光！如需更详细的行程安排或有其他问题，请随时告诉我。`;
+
+    // 添加响应消息
+    addBotMessage(response);
 }
 
